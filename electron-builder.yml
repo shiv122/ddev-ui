@@ -1,0 +1,36 @@
+appId: com.zaraffasoft.ddev-ui
+productName: DDEV UI
+directories:
+  buildResources: build
+files:
+  - out/**
+  - package.json
+# node-pty must live outside the asar archive: its spawn-helper is a real
+# executable that cannot run from inside an archive.
+asarUnpack:
+  - '**/node_modules/node-pty/**'
+artifactName: ${name}-${version}-${os}-${arch}.${ext}
+publish:
+  provider: github
+mac:
+  category: public.app-category.developer-tools
+  darkModeSupport: true
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+  maintainer: stripathi@zaraffasoft.com
+npmRebuild: false

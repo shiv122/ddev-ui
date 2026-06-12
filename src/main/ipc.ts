@@ -1,0 +1,84 @@
+import { spawn } from 'node:child_process'
+import { dialog, ipcMain, shell } from 'electron'
+import { IPC } from '@shared/ipc'
+import type { ExtraKind, FileDialogOptions, OperationRequest } from '@shared/types'
+import { augmentedEnv, findBinary } from './ddev/binary'
+import { ddevClient } from './ddev/client'
+import { runDoctor } from './ddev/doctor'
+import { createExtra, projectExtras, readGlobalConfig } from './ddev/extras'
+import { terminalManager } from './ddev/terminals'
+import { operationManager } from './ddev/operations'
+
+export function registerIpcHandlers(): void {
+  // ----- queries -----
+  ipcMain.handle(IPC.list, () => ddevClient.list())
+  ipcMain.handle(IPC.describe, (_e, project: string) => ddevClient.describe(project))
+  ipcMain.handle(IPC.version, () => ddevClient.version())
+  ipcMain.handle(IPC.doctor, () => runDoctor())
+  ipcMain.handle(IPC.addonRegistry, () => ddevClient.addonRegistry())
+  ipcMain.handle(IPC.addonsInstalled, (_e, project: string) => ddevClient.addonsInstalled(project))
+  ipcMain.handle(IPC.snapshots, (_e, project: string) => ddevClient.snapshots(project))
+  ipcMain.handle(IPC.readConfigFile, (_e, project: string) => ddevClient.readConfigFile(project))
+  ipcMain.handle(IPC.extras, (_e, project: string) => projectExtras(project))
+  ipcMain.handle(IPC.createExtra, (_e, project: string, kind: ExtraKind, name: string) =>
+    createExtra(project, kind, name)
+  )
+  ipcMain.handle(IPC.globalConfig, () => readGlobalConfig())
+
+  // ----- operations -----
+  ipcMain.handle(IPC.opRun, (_e, request: OperationRequest) => operationManager.run(request))
+  ipcMain.handle(IPC.opCancel, (_e, id: string) => operationManager.cancel(id))
+  ipcMain.handle(IPC.opList, () => operationManager.list())
+  ipcMain.handle(IPC.opBuffer, (_e, id: string) => operationManager.buffer(id))
+
+  // ----- interactive terminals -----
+  ipcMain.handle(IPC.termCreate, (e, project: string, service: string, cols: number, rows: number) =>
+    terminalManager.create(e.sender, project, service, cols, rows)
+  )
+  ipcMain.on(IPC.termWrite, (_e, id: string, data: string) => terminalManager.write(id, data))
+  ipcMain.on(IPC.termResize, (_e, id: string, cols: number, rows: number) =>
+    terminalManager.resize(id, cols, rows)
+  )
+  ipcMain.on(IPC.termDispose, (_e, id: string) => terminalManager.dispose(id))
+
+  // ----- app utilities -----
+  ipcMain.handle(IPC.openExternal, (_e, url: string) => {
+    if (!/^https?:\/\//i.test(url)) throw new Error(`Refusing to open non-http URL: ${url}`)
+    return shell.openExternal(url)
+  })
+  ipcMain.handle(IPC.revealPath, (_e, path: string) => shell.showItemInFolder(path))
+
+  ipcMain.handle(IPC.openInEditor, (_e, path: string) => {
+    const code = findBinary('code') ?? findBinary('cursor')
+    if (!code) throw new Error('No editor CLI found — install the "code" command from VS Code')
+    spawn(code, [path], { detached: true, stdio: 'ignore', env: augmentedEnv() }).unref()
+  })
+
+  ipcMain.handle(IPC.selectDirectory, async (_e, options: FileDialogOptions = {}) => {
+    const result = await dialog.showOpenDialog({
+      title: options.title,
+      defaultPath: options.defaultPath,
+      properties: ['openDirectory', 'createDirectory']
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle(IPC.selectFile, async (_e, options: FileDialogOptions = {}) => {
+    const result = await dialog.showOpenDialog({
+      title: options.title,
+      defaultPath: options.defaultPath,
+      filters: options.filters,
+      properties: ['openFile']
+    })
+    return result.canceled ? null : result.filePaths[0]
+  })
+
+  ipcMain.handle(IPC.saveFile, async (_e, options: FileDialogOptions = {}) => {
+    const result = await dialog.showSaveDialog({
+      title: options.title,
+      defaultPath: options.defaultPath,
+      filters: options.filters
+    })
+    return result.canceled ? null : result.filePath
+  })
+}

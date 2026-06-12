@@ -1,0 +1,161 @@
+import {
+  Code2,
+  EyeOff,
+  FolderOpen,
+  Globe,
+  Mail,
+  MoreHorizontal,
+  Play,
+  RotateCw,
+  Square,
+  Trash2
+} from 'lucide-react'
+import { toast } from 'sonner'
+import type { DdevProject } from '@shared/types'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { ConfirmDialog } from '@/components/app/confirm-dialog'
+import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
+import { runOperation, useProjectBusy } from '@/store/operations'
+
+export function ProjectActions({
+  project,
+  size = 'sm'
+}: {
+  project: DdevProject
+  size?: 'sm' | 'default'
+}): React.JSX.Element {
+  const busy = useProjectBusy(project.name)
+  const running = project.status === 'running'
+  const broken =
+    project.status === '.ddev/config.yaml missing' || project.status === 'project directory missing'
+  const startable = !running && !broken && project.status !== 'starting'
+
+  return (
+    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {busy ? (
+        <Button size={size} variant="secondary" disabled className="gap-2">
+          <LoaderCircle animate loop className="size-4" />
+          Working…
+        </Button>
+      ) : broken ? (
+        <ConfirmDialog
+          title={`Unlist ${project.name}?`}
+          description="This project's files are missing, so it can't start. Unlisting removes the stale entry from DDEV's registry — nothing on disk is touched."
+          confirmLabel="Unlist project"
+          onConfirm={() => void runOperation({ kind: 'unlist', project: project.name })}
+          trigger={
+            <Button size={size} variant="secondary" className="gap-1.5">
+              <EyeOff className="size-3.5" /> Unlist
+            </Button>
+          }
+        />
+      ) : startable ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size={size}
+              className="gap-1.5"
+              onClick={() => void runOperation({ kind: 'start', project: project.name })}
+            >
+              <Play className="size-3.5" /> Start
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>ddev start {project.name}</TooltipContent>
+        </Tooltip>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size={size}
+              variant="secondary"
+              className="gap-1.5"
+              onClick={() => void runOperation({ kind: 'stop', project: project.name })}
+            >
+              <Square className="size-3.5" /> Stop
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>ddev stop {project.name}</TooltipContent>
+        </Tooltip>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size={size} variant="ghost" className="px-2" disabled={busy}>
+            <MoreHorizontal className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem
+            onClick={() => void runOperation({ kind: 'restart', project: project.name })}
+          >
+            <RotateCw className="size-4" /> Restart
+          </DropdownMenuItem>
+          {running && (
+            <>
+              <DropdownMenuItem onClick={() => void window.ddev.openExternal(project.primary_url)}>
+                <Globe className="size-4" /> Open in browser
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => void window.ddev.openExternal(project.mailpit_https_url)}
+              >
+                <Mail className="size-4" /> Open Mailpit
+              </DropdownMenuItem>
+            </>
+          )}
+          <DropdownMenuItem onClick={() => void window.ddev.revealPath(project.approot)}>
+            <FolderOpen className="size-4" /> Reveal project folder
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() =>
+              window.ddev.openInEditor(project.approot).catch((err: Error) =>
+                toast.error('Could not open editor', {
+                  description: err.message.replace(/^Error invoking remote method '[^']+': /, '')
+                })
+              )
+            }
+          >
+            <Code2 className="size-4" /> Open in editor
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <ConfirmDialog
+            title={`Unlist ${project.name}?`}
+            description="Removes the project from DDEV's list without touching code or database. Run ddev start in the folder (or re-create it here) to register it again."
+            confirmLabel="Unlist project"
+            onConfirm={() => void runOperation({ kind: 'unlist', project: project.name })}
+            trigger={
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <EyeOff className="size-4" /> Unlist…
+              </DropdownMenuItem>
+            }
+          />
+          <ConfirmDialog
+            title={`Delete ${project.name}?`}
+            description={
+              broken
+                ? 'This removes the containers and DDEV registration of this broken project. Your code (if any) stays on disk. No snapshot is possible since the project cannot start.'
+                : "This removes the project's containers and DDEV registration. Your code stays on disk. A database snapshot will be taken first."
+            }
+            confirmLabel="Delete project"
+            destructive
+            onConfirm={() =>
+              void runOperation({ kind: 'delete', project: project.name, omitSnapshot: broken })
+            }
+            trigger={
+              <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
+                <Trash2 className="size-4" /> Delete…
+              </DropdownMenuItem>
+            }
+          />
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
