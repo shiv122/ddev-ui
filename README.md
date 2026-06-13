@@ -35,15 +35,28 @@
 
 ## Overview
 
-[DDEV](https://ddev.com) is a fantastic CLI for spinning up containerized local development
-environments, but everything lives behind `ddev` subcommands and YAML config. **DDevUI** puts a
-fast, native-feeling desktop app on top: every project, its status, logs, database, add-ons and
-configuration in one monochrome, dark-mode-ready interface — without ever touching the terminal.
+**DDevUI** is a desktop app for [DDEV](https://ddev.com): every project, its status, logs,
+database, add-ons and configuration in one place — no `ddev` subcommands or YAML editing required.
+Start and stop projects, open a real shell into any service, import/export databases, manage
+snapshots, install add-ons, and create new projects from a wizard — all from a single window.
 
-It talks to DDEV exclusively through `ddev <cmd> --json-output`, so there's no parsing of
-human text and no hidden shell commands — just typed, allow-listed invocations.
+It talks to DDEV exclusively through `ddev <cmd> --json-output` — no parsing of human text, no
+hidden shell commands, just typed, allow-listed invocations spawned with arg arrays (never a
+shell). Project lists poll in the background, and long-running commands stream their output live.
 
-## Download
+## Install
+
+### macOS — Homebrew (recommended)
+
+```sh
+brew install --cask shiv122/tap/ddevui
+```
+
+The app opens normally, with **no Gatekeeper prompt** — the
+[cask](https://github.com/shiv122/homebrew-tap) clears the download quarantine flag on install.
+Update with `brew upgrade --cask ddevui`.
+
+### Direct download
 
 Grab the installer for your platform from the
 **[latest release](https://github.com/shiv122/ddev-ui/releases/latest)**:
@@ -56,9 +69,10 @@ Grab the installer for your platform from the
 | **Linux** | `ddevui-<version>-linux-x86_64.AppImage` · `-linux-amd64.deb` |
 
 > [!NOTE]
-> **macOS first launch.** Builds are ad-hoc signed but **not notarized** (no Apple Developer ID),
-> so Gatekeeper shows an "unidentified developer" prompt the first time. Either **right-click the
-> app → Open** and confirm (once), or clear the quarantine flag:
+> **macOS direct download.** The builds are ad-hoc signed but **not notarized** (no Apple
+> Developer ID), so a browser download triggers Gatekeeper's "could not verify" prompt. Either
+> use Homebrew above (no prompt), **right-click the app → Open** and confirm (once), or clear the
+> quarantine flag:
 > ```sh
 > xattr -dr com.apple.quarantine /Applications/DDevUI.app
 > ```
