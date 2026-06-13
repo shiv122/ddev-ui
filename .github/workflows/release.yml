@@ -9,7 +9,10 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  # Build installers on each OS and stash them as workflow artifacts. No job
+  # publishes here — that avoids the matrix race where parallel jobs each create
+  # a GitHub release for the same tag (which produced a duplicate empty release).
+  build:
     strategy:
       fail-fast: false
       matrix:
@@ -33,21 +36,46 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Build and publish
+      - name: Build installers
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No Apple Developer ID: don't search the keychain for a real cert.
-          # macOS signing is handled by `mac.identity: '-'` (ad-hoc) in
-          # electron-builder.yml, which yields a valid (unnotarized) signature
-          # so downloads aren't flagged "damaged".
+          # No Apple Developer ID: don't search the keychain. macOS signing is
+          # handled by the afterPack ad-hoc hook in electron-builder.yml.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           pnpm exec electron-vite build
           if [ "$RUNNER_OS" == "macOS" ]; then
-            pnpm exec electron-builder --mac --publish always
+            pnpm exec electron-builder --mac --publish never
           elif [ "$RUNNER_OS" == "Windows" ]; then
-            pnpm exec electron-builder --win --publish always
+            pnpm exec electron-builder --win --publish never
           else
-            pnpm exec electron-builder --linux --publish always
+            pnpm exec electron-builder --linux --publish never
           fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.os }}
+          # Installers only — no .zip/.blockmap/latest*.yml (auto-update plumbing
+          # this app doesn't use).
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error
+
+  # Single job creates exactly one release for the tag with all installers.
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          fail_on_unmatched_files: true
