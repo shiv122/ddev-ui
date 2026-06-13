@@ -68,6 +68,9 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      arm_sha: ${{ steps.sha.outputs.arm }}
+      x64_sha: ${{ steps.sha.outputs.x64 }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -79,3 +82,38 @@ jobs:
         with:
           files: artifacts/*
           fail_on_unmatched_files: true
+
+      - name: Compute mac dmg checksums
+        id: sha
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          echo "arm=$(sha256sum "artifacts/ddevui-${ver}-mac-arm64.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "x64=$(sha256sum "artifacts/ddevui-${ver}-mac-x64.dmg" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+  # Bump the Homebrew cask in shiv122/homebrew-tap to this release. Requires a
+  # HOMEBREW_TAP_TOKEN secret (PAT with contents:write on the tap repo) because
+  # the default GITHUB_TOKEN can't push to a different repository.
+  update-cask:
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v4
+        with:
+          repository: shiv122/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Bump ddevui cask
+        env:
+          ARM_SHA: ${{ needs.publish.outputs.arm_sha }}
+          X64_SHA: ${{ needs.publish.outputs.x64_sha }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          sed -i -E "s/^  version \"[^\"]+\"/  version \"${ver}\"/" Casks/ddevui.rb
+          sed -i -E "s/(arm:[[:space:]]+)\"[a-f0-9]{64}\"/\1\"${ARM_SHA}\"/" Casks/ddevui.rb
+          sed -i -E "s/(intel:[[:space:]]+)\"[a-f0-9]{64}\"/\1\"${X64_SHA}\"/" Casks/ddevui.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/ddevui.rb
+          git diff --cached --quiet || git commit -m "ddevui ${ver}"
+          git push
