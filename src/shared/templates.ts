@@ -1,5 +1,5 @@
 /**
- * DDEV UI app templates — first-class support for non-PHP stacks on top of
+ * DDevUI app templates — first-class support for non-PHP stacks on top of
  * ddev's `generic` project type.
  *
  * Mechanism: ddev merges every `.ddev/config.*.yaml` over the base config, so
@@ -28,7 +28,7 @@ export interface AppTemplate {
 }
 
 function nodeDaemonYaml(id: string, command: string, port: number): string {
-  return `# DDEV UI template: ${id} — merged over .ddev/config.yaml (safe to edit)
+  return `# DDevUI template: ${id} — merged over .ddev/config.yaml (safe to edit)
 web_extra_daemons:
   - name: ${id}
     command: "bash -lc 'test -f package.json && npm install --no-audit --no-fund >/dev/null 2>&1; ${command}'"
@@ -41,14 +41,14 @@ web_extra_exposed_ports:
 `
 }
 
-const PYTHON_DOCKERFILE = `# Python runtime for this project's web container (DDEV UI template)
+const PYTHON_DOCKERFILE = `# Python runtime for this project's web container (DDevUI template)
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y -o Dpkg::Options::="--force-confnew" --no-install-recommends --no-install-suggests python3 python3-pip python3-venv
 RUN python3 -m venv /opt/venv && chmod -R ugo+w /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 `
 
 function pythonDaemonYaml(id: string, command: string, port: number): string {
-  return `# DDEV UI template: ${id} — merged over .ddev/config.yaml (safe to edit)
+  return `# DDevUI template: ${id} — merged over .ddev/config.yaml (safe to edit)
 web_extra_daemons:
   - name: ${id}
     command: "bash -lc 'test -f requirements.txt && pip install -q -r requirements.txt; ${command}'"

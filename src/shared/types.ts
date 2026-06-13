@@ -1,5 +1,5 @@
 /**
- * Shared types for the DDEV UI app. These model the exact JSON shapes emitted
+ * Shared types for the DDevUI app. These model the exact JSON shapes emitted
  * by `ddev <cmd> --json-output` (the `raw` field of the NDJSON envelope).
  */
 
@@ -174,6 +174,13 @@ export interface DoctorCheck {
   detail: string
 }
 
+/** A binary the user can locate manually when auto-detection fails. */
+export interface BinaryInfo {
+  name: 'ddev' | 'docker'
+  resolved: string | null
+  override: string | null
+}
+
 export interface DoctorReport {
   ok: boolean
   checks: DoctorCheck[]
@@ -208,7 +215,7 @@ export type OperationRequest =
       kind: 'create-project'
       dir: string
       name: string
-      /** DDEV UI app template id (templates.ts) — overrides projectType with `generic`. */
+      /** DDevUI app template id (templates.ts) — overrides projectType with `generic`. */
       template?: string
       /** Skip the db container entirely (--omit-containers=db). */
       omitDb?: boolean

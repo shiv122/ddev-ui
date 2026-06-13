@@ -37,7 +37,8 @@ export function OperationConsole({
         pinnedToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
       }}
       className={cn(
-        'scrollbar-thin h-full overflow-auto rounded-lg border bg-black/40 p-3 font-mono text-xs leading-relaxed',
+        // `dark` pins the console to the dark palette even in light mode
+        'dark scrollbar-thin h-full overflow-auto rounded-lg border bg-[#101010] p-3 font-mono text-xs leading-relaxed',
         className
       )}
     >

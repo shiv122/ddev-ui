@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, HelpCircle, Save, Settings2 } from 'lucide-react'
+import { AlertTriangle, FolderSearch, HelpCircle, Save, Settings2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useGlobalConfig } from '@/api/hooks'
+import { useBinaries, useGlobalConfig } from '@/api/hooks'
+import { invalidateAfterBinaryChange } from '@/lib/query-client'
 import { runOperation, useOperations } from '@/store/operations'
 
 function Help({ text }: { text: string }): React.JSX.Element {
@@ -168,6 +170,84 @@ export function SettingsPage(): React.JSX.Element {
           <Save className="size-3.5" /> Apply global settings
         </Button>
       </div>
+
+      <BinaryLocationsCard />
     </div>
+  )
+}
+
+function BinaryLocationsCard(): React.JSX.Element {
+  const binaries = useBinaries()
+
+  const handle = async (action: Promise<unknown>): Promise<void> => {
+    try {
+      await action
+      invalidateAfterBinaryChange()
+    } catch (err) {
+      toast.error('Could not use that file', {
+        description:
+          err instanceof Error
+            ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+            : String(err)
+      })
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          Binary locations
+          <Help text="DDevUI finds ddev and docker via your login-shell PATH plus common install locations. If detection fails (custom installs, unusual shells), point it at the binary directly — the override is saved and also passed to ddev so it finds the same docker." />
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {(binaries.data ?? []).map((bin) => (
+          <div
+            key={bin.name}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{bin.name}</span>
+                {bin.override && (
+                  <span className="rounded-full border border-foreground/25 bg-foreground/[0.06] px-2 py-0.5 text-[10px] text-foreground/80">
+                    manual
+                  </span>
+                )}
+                {!bin.resolved && (
+                  <span className="rounded-full border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[10px] text-destructive">
+                    not found
+                  </span>
+                )}
+              </div>
+              <div className="truncate font-mono text-[11px] text-muted-foreground" title={bin.resolved ?? ''}>
+                {bin.resolved ?? 'auto-detection failed'}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-7 gap-1.5 px-2.5 text-xs"
+                onClick={() => void handle(window.ddev.pickBinary(bin.name))}
+              >
+                <FolderSearch className="size-3" /> Browse…
+              </Button>
+              {bin.override && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground"
+                  onClick={() => void handle(window.ddev.clearBinaryOverride(bin.name))}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   )
 }

@@ -1,5 +1,6 @@
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type {
+  BinaryInfo,
   DdevAddon,
   DdevDescribe,
   DdevInstalledAddon,
@@ -78,6 +79,13 @@ export function useExtras(project: string): UseQueryResult<ProjectExtras> {
   return useQuery({
     queryKey: queryKeys.extras(project),
     queryFn: () => window.ddev.extras(project)
+  })
+}
+
+export function useBinaries(): UseQueryResult<BinaryInfo[]> {
+  return useQuery({
+    queryKey: queryKeys.binaries,
+    queryFn: () => window.ddev.binaries()
   })
 }
 

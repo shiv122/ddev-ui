@@ -1,14 +1,22 @@
-appId: com.zaraffasoft.ddev-ui
-productName: DDEV UI
+appId: com.zaraffasoft.ddevui
+productName: DDevUI
 directories:
   buildResources: build
 files:
   - out/**
   - package.json
+  # Runtime icons referenced by the main process for the dock + menu-bar tray.
+  # The main bundle resolves these as app.asar/resources/icon*.png, so they must
+  # be packed alongside out/ — without them Tray creation fails and startup dies.
+  - resources/icon.png
+  - resources/icon-light.png
 # node-pty must live outside the asar archive: its spawn-helper is a real
-# executable that cannot run from inside an archive.
+# executable that cannot run from inside an archive. The tray/dock icons are
+# unpacked too so nativeImage reads them as real files rather than asar entries.
 asarUnpack:
   - '**/node_modules/node-pty/**'
+  - resources/icon.png
+  - resources/icon-light.png
 artifactName: ${name}-${version}-${os}-${arch}.${ext}
 publish:
   provider: github

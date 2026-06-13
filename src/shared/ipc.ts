@@ -28,6 +28,17 @@ export const IPC = {
   termData: 'term:data',
   termExit: 'term:exit',
 
+  // Binary locations (manual override when auto-detection fails)
+  binaries: 'app:binaries',
+  pickBinary: 'app:pick-binary',
+  clearBinaryOverride: 'app:clear-binary-override',
+
+  // Main → renderer navigation (from the tray menu)
+  navigate: 'app:navigate',
+
+  // Renderer → main: keep the dock/menu-bar icon in sync with the UI theme
+  setTheme: 'app:set-theme',
+
   // App utilities
   openExternal: 'app:open-external',
   openInEditor: 'app:open-in-editor',

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { Shell } from '@/components/app/shell'
 import { useRouter } from '@/lib/router'
@@ -14,7 +15,16 @@ function routeKey(view: string, name?: string): string {
 }
 
 export default function App(): React.JSX.Element {
-  const { route } = useRouter()
+  const { route, navigate } = useRouter()
+
+  // Tray menu "Show in DDevUI" → navigate to the project.
+  useEffect(() => {
+    return window.ddev.onNavigate((target) => {
+      if (target.view === 'project' && target.name) {
+        navigate({ view: 'project', name: target.name })
+      }
+    })
+  }, [navigate])
 
   let page: React.JSX.Element
   let key: string

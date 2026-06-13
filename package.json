@@ -1,5 +1,5 @@
 {
-  "name": "ddev-ui",
+  "name": "ddevui",
   "version": "0.1.0",
   "description": "A desktop UI for managing DDEV local development projects",
   "main": "./out/main/index.js",

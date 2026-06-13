@@ -55,7 +55,7 @@ function SetupInstructions(): React.JSX.Element {
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
         Sharing needs a tunnel provider on your machine — it's entirely optional and nothing else
-        in DDEV UI depends on it. Install one, then come back here:
+        in DDevUI depends on it. Install one, then come back here:
       </p>
       {[
         { name: 'ngrok', cmd: 'brew install ngrok', extra: 'then add your free authtoken: ngrok config add-authtoken <token>' },
@@ -186,7 +186,7 @@ export function ShareDialog({ info }: { info: DdevDescribe }): React.JSX.Element
                 </div>
               )}
             </div>
-            <div className="scrollbar-thin max-h-32 overflow-auto rounded-lg border bg-black/40 p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
+            <div className="dark scrollbar-thin max-h-32 overflow-auto rounded-lg border bg-[#101010] p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
               {lines.slice(-12).map((l, i) => (
                 <div key={i} className="truncate">
                   {l.text}

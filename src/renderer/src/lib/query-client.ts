@@ -20,7 +20,16 @@ export const queryKeys = {
   snapshots: (name: string) => ['snapshots', name] as const,
   configFile: (name: string) => ['config-file', name] as const,
   extras: (name: string) => ['extras', name] as const,
-  globalConfig: ['global-config'] as const
+  globalConfig: ['global-config'] as const,
+  binaries: ['binaries'] as const
+}
+
+/** Refresh everything affected by a binary path change (ddev/docker located). */
+export function invalidateAfterBinaryChange(): void {
+  void queryClient.invalidateQueries({ queryKey: queryKeys.binaries })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.doctor })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.version })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.projects })
 }
 
 /** Invalidate everything that may change after a ddev operation completes. */

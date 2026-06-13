@@ -1,4 +1,4 @@
-# DDEV UI
+# DDevUI
 
 A desktop app for managing [DDEV](https://ddev.com) local development projects — everything the
 `ddev` CLI does, behind a well-designed UI. Built with Electron, React 19, Tailwind v4,
@@ -69,4 +69,3 @@ pnpm build:mac    # or build:win / build:linux
 
 Requires Node 20+, pnpm, and DDEV + a Docker provider installed (the app's Doctor page will
 tell you what's missing).
-# ddev-ui

@@ -171,7 +171,7 @@ export function CreateProjectPage(): React.JSX.Element {
 
           <div className="space-y-2">
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Beyond PHP — DDEV UI templates (ddev `generic` type)
+              Beyond PHP — DDevUI templates (ddev `generic` type)
             </div>
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               {APP_TEMPLATES.map((t) => (

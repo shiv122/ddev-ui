@@ -338,7 +338,7 @@ export function AdvancedTab({ info }: { info: DdevDescribe }): React.JSX.Element
           </CardHeader>
           <CardContent className="space-y-2">
             {x.hooks ? (
-              <pre className="scrollbar-thin max-h-48 overflow-auto rounded-lg border bg-black/30 p-3 font-mono text-[11px] leading-relaxed">
+              <pre className="dark scrollbar-thin max-h-48 overflow-auto rounded-lg border bg-[#101010] p-3 font-mono text-[11px] leading-relaxed text-foreground/90">
                 {x.hooks}
               </pre>
             ) : (

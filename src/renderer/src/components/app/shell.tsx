@@ -3,13 +3,16 @@ import {
   Activity,
   Blocks,
   CircleAlert,
-  Container,
   LayoutGrid,
+  Moon,
   Plus,
   Power,
   Settings2,
-  Stethoscope
+  Stethoscope,
+  Sun
 } from 'lucide-react'
+import logoDark from '@/assets/logo-dark.png'
+import logoLight from '@/assets/logo-light.png'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -19,6 +22,7 @@ import { OperationDock } from '@/components/app/operation-dock'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
 import { useDoctor, useProjects, useVersion } from '@/api/hooks'
 import { useRouter, type Route } from '@/lib/router'
+import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
 import { runOperation, useRunningOperations } from '@/store/operations'
 
@@ -64,6 +68,7 @@ const NAV: NavItem[] = [
 
 export function Shell({ children }: { children: ReactNode }): React.JSX.Element {
   const { route, navigate } = useRouter()
+  const { theme, toggleTheme } = useTheme()
   const projects = useProjects()
   const doctor = useDoctor()
   const version = useVersion()
@@ -77,10 +82,12 @@ export function Shell({ children }: { children: ReactNode }): React.JSX.Element 
         {/* draggable spacer clears the macOS traffic lights, logo sits below */}
         <div className="app-drag h-11 shrink-0" />
         <div className="flex items-center gap-2.5 px-4 pb-3">
-          <div className="metal-tile flex size-7 items-center justify-center rounded-md">
-            <Container className="size-4" />
-          </div>
-          <span className="text-metallic text-[15px] font-bold tracking-widest">DDEV</span>
+          <img
+            src={theme === 'dark' ? logoDark : logoLight}
+            alt="DDevUI"
+            className="size-7 rounded-md shadow-sm"
+          />
+          <span className="text-metallic text-[15px] font-bold tracking-widest">DDevUI</span>
         </div>
 
         <nav className="flex flex-col gap-0.5 p-2">
@@ -161,9 +168,24 @@ export function Shell({ children }: { children: ReactNode }): React.JSX.Element 
             </button>
           )}
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">
-              {version.data?.['DDEV version'] ?? 'ddev'}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-muted-foreground">
+                {version.data?.['DDEV version'] ?? 'ddev'}
+              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 text-muted-foreground"
+                    onClick={toggleTheme}
+                  >
+                    {theme === 'dark' ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Switch to {theme === 'dark' ? 'light' : 'dark'} mode</TooltipContent>
+              </Tooltip>
+            </div>
             <ConfirmDialog
               title="Power off DDEV?"
               description="Stops all projects and removes the router and ssh-agent containers."

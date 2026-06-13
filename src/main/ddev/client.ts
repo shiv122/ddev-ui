@@ -17,6 +17,12 @@ import { runDdevJson } from './runner'
  */
 class DdevClient {
   private approots = new Map<string, string>()
+  /** Notified with fresh project data on every list() — used by the tray. */
+  private projectsListener: ((projects: DdevProject[]) => void) | null = null
+
+  onProjects(listener: (projects: DdevProject[]) => void): void {
+    this.projectsListener = listener
+  }
 
   async list(): Promise<DdevProject[]> {
     const { raw } = await runDdevJson<DdevProject[]>(['list'])
@@ -24,6 +30,7 @@ class DdevClient {
     for (const p of projects) {
       if (p.name && p.approot) this.approots.set(p.name, p.approot)
     }
+    this.projectsListener?.(projects)
     return projects
   }
 

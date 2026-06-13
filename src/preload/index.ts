@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '@shared/ipc'
 import type {
+  BinaryInfo,
   DdevAddon,
   DdevDescribe,
   DdevInstalledAddon,
@@ -44,6 +45,13 @@ const api = {
     return () => ipcRenderer.removeListener(IPC.opEvent, listener)
   },
 
+  // Binary locations
+  binaries: (): Promise<BinaryInfo[]> => ipcRenderer.invoke(IPC.binaries),
+  pickBinary: (name: 'ddev' | 'docker'): Promise<BinaryInfo[]> =>
+    ipcRenderer.invoke(IPC.pickBinary, name),
+  clearBinaryOverride: (name: 'ddev' | 'docker'): Promise<BinaryInfo[]> =>
+    ipcRenderer.invoke(IPC.clearBinaryOverride, name),
+
   // Interactive terminal sessions
   createTerminal: (
     project: string,
@@ -66,6 +74,15 @@ const api = {
       callback(e)
     ipcRenderer.on(IPC.termExit, listener)
     return () => ipcRenderer.removeListener(IPC.termExit, listener)
+  },
+
+  setTheme: (theme: 'dark' | 'light'): void => ipcRenderer.send(IPC.setTheme, theme),
+
+  onNavigate: (callback: (target: { view: string; name?: string }) => void): (() => void) => {
+    const listener = (_: Electron.IpcRendererEvent, target: { view: string; name?: string }): void =>
+      callback(target)
+    ipcRenderer.on(IPC.navigate, listener)
+    return () => ipcRenderer.removeListener(IPC.navigate, listener)
   },
 
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(IPC.openExternal, url),

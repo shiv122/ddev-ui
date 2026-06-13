@@ -4,6 +4,7 @@ import {
   ChevronDown,
   Container,
   FlaskConical,
+  FolderSearch,
   HeartPulse,
   RefreshCw,
   Share2,
@@ -14,6 +15,7 @@ import {
   XCircle
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
+import { toast } from 'sonner'
 import type { DoctorCheck } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,6 +24,7 @@ import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { OperationConsole } from '@/components/app/operation-console'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
 import { useDoctor, useVersion } from '@/api/hooks'
+import { invalidateAfterBinaryChange } from '@/lib/query-client'
 import { cn } from '@/lib/utils'
 import { runOperation, useOperations } from '@/store/operations'
 
@@ -34,8 +37,30 @@ const CHECK_ICONS: Record<DoctorCheck['id'], typeof Container> = {
   tunnel: Share2
 }
 
+/** Checks whose binary the user can point us to manually. */
+const LOCATABLE: Partial<Record<DoctorCheck['id'], 'ddev' | 'docker'>> = {
+  'ddev-binary': 'ddev',
+  'docker-cli': 'docker'
+}
+
 function CheckTile({ check }: { check: DoctorCheck }): React.JSX.Element {
   const Icon = CHECK_ICONS[check.id] ?? Stethoscope
+  const locatable = !check.ok && LOCATABLE[check.id]
+
+  const locate = async (): Promise<void> => {
+    try {
+      await window.ddev.pickBinary(LOCATABLE[check.id]!)
+      invalidateAfterBinaryChange()
+    } catch (err) {
+      toast.error('Could not use that file', {
+        description:
+          err instanceof Error
+            ? err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+            : String(err)
+      })
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -58,6 +83,16 @@ function CheckTile({ check }: { check: DoctorCheck }): React.JSX.Element {
             <CheckCircle2 className="size-3.5 shrink-0 text-success" />
           ) : (
             <XCircle className="size-3.5 shrink-0 text-destructive" />
+          )}
+          {locatable && (
+            <Button
+              variant="secondary"
+              size="sm"
+              className="ml-auto h-6 shrink-0 gap-1 px-2 text-[11px]"
+              onClick={() => void locate()}
+            >
+              <FolderSearch className="size-3" /> Locate manually…
+            </Button>
           )}
         </div>
         <p

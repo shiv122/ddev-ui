@@ -109,8 +109,20 @@
 /* Metallic / shine utilities                                          */
 /* ------------------------------------------------------------------ */
 
-/* Silver gradient headline text */
+/* Metallic headline text — dark steel on light theme, silver on dark */
 .text-metallic {
+  background: linear-gradient(
+    180deg,
+    oklch(0.5 0 0) 0%,
+    oklch(0.18 0 0) 40%,
+    oklch(0.45 0 0) 72%,
+    oklch(0.15 0 0) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.dark .text-metallic {
   background: linear-gradient(
     180deg,
     oklch(0.99 0 0) 0%,
@@ -120,13 +132,27 @@
   );
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
 }
 
 /* Card with a metallic gradient border + soft top highlight */
 .metal-card {
   position: relative;
   border: 1px solid transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    linear-gradient(
+        165deg,
+        oklch(0 0 0 / 0.14),
+        oklch(0 0 0 / 0.06) 28%,
+        oklch(0 0 0 / 0.04) 55%,
+        oklch(0 0 0 / 0.1) 100%
+      )
+      border-box;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.7),
+    0 1px 2px oklch(0 0 0 / 0.07);
+}
+.dark .metal-card {
   background:
     linear-gradient(var(--card), var(--card)) padding-box,
     linear-gradient(
@@ -154,13 +180,22 @@
   background: linear-gradient(
     105deg,
     transparent 35%,
-    oklch(1 0 0 / 0.055) 48%,
-    oklch(1 0 0 / 0.09) 52%,
+    oklch(0 0 0 / 0.035) 48%,
+    oklch(0 0 0 / 0.06) 52%,
     transparent 65%
   );
   transform: translateX(-110%);
   transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
   pointer-events: none;
+}
+.dark .sheen::after {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    oklch(1 0 0 / 0.055) 48%,
+    oklch(1 0 0 / 0.09) 52%,
+    transparent 65%
+  );
 }
 .sheen:hover::after {
   transform: translateX(110%);
@@ -169,9 +204,17 @@
 /* Brushed-metal tile for icons/logos */
 .metal-tile {
   background:
+    linear-gradient(180deg, oklch(0.98 0 0), oklch(0.85 0 0)) padding-box,
+    linear-gradient(180deg, oklch(1 0 0), oklch(0 0 0 / 0.2)) border-box;
+  border: 1px solid transparent;
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.9),
+    0 1px 3px oklch(0 0 0 / 0.15);
+}
+.dark .metal-tile {
+  background:
     linear-gradient(180deg, oklch(0.3 0 0), oklch(0.18 0 0)) padding-box,
     linear-gradient(180deg, oklch(1 0 0 / 0.32), oklch(1 0 0 / 0.05)) border-box;
-  border: 1px solid transparent;
   box-shadow:
     inset 0 1px 0 oklch(1 0 0 / 0.18),
     0 2px 6px oklch(0 0 0 / 0.45);
@@ -179,6 +222,11 @@
 
 /* Subtle radial glow behind hero areas */
 .hero-glow {
+  background:
+    radial-gradient(60% 120% at 50% -20%, oklch(0 0 0 / 0.04), transparent 70%),
+    radial-gradient(40% 80% at 80% 0%, oklch(0 0 0 / 0.02), transparent 60%);
+}
+.dark .hero-glow {
   background:
     radial-gradient(60% 120% at 50% -20%, oklch(1 0 0 / 0.07), transparent 70%),
     radial-gradient(40% 80% at 80% 0%, oklch(1 0 0 / 0.03), transparent 60%);

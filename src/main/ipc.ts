@@ -2,7 +2,13 @@ import { spawn } from 'node:child_process'
 import { dialog, ipcMain, shell } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { ExtraKind, FileDialogOptions, OperationRequest } from '@shared/types'
-import { augmentedEnv, findBinary } from './ddev/binary'
+import {
+  augmentedEnv,
+  binaryInfo,
+  findBinary,
+  setBinaryOverride,
+  type OverridableBinary
+} from './ddev/binary'
 import { ddevClient } from './ddev/client'
 import { runDoctor } from './ddev/doctor'
 import { createExtra, projectExtras, readGlobalConfig } from './ddev/extras'
@@ -30,6 +36,23 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.opCancel, (_e, id: string) => operationManager.cancel(id))
   ipcMain.handle(IPC.opList, () => operationManager.list())
   ipcMain.handle(IPC.opBuffer, (_e, id: string) => operationManager.buffer(id))
+
+  // ----- binary locations -----
+  ipcMain.handle(IPC.binaries, () => binaryInfo())
+  ipcMain.handle(IPC.pickBinary, async (_e, name: OverridableBinary) => {
+    const result = await dialog.showOpenDialog({
+      title: `Locate the ${name} binary`,
+      defaultPath: '/usr/local/bin',
+      properties: ['openFile', 'showHiddenFiles', 'treatPackageAsDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return binaryInfo()
+    setBinaryOverride(name, result.filePaths[0])
+    return binaryInfo()
+  })
+  ipcMain.handle(IPC.clearBinaryOverride, (_e, name: OverridableBinary) => {
+    setBinaryOverride(name, null)
+    return binaryInfo()
+  })
 
   // ----- interactive terminals -----
   ipcMain.handle(IPC.termCreate, (e, project: string, service: string, cols: number, rows: number) =>

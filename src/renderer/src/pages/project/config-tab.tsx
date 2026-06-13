@@ -488,7 +488,7 @@ function ConfigForm({ info, yaml }: { info: DdevDescribe; yaml: string }): React
               transition={{ duration: 0.18 }}
               className="overflow-hidden"
             >
-              <pre className="scrollbar-thin mx-6 mt-3 max-h-96 overflow-auto rounded-lg border bg-black/40 p-3 font-mono text-xs leading-relaxed">
+              <pre className="dark scrollbar-thin mx-6 mt-3 max-h-96 overflow-auto rounded-lg border bg-[#101010] p-3 font-mono text-xs leading-relaxed text-foreground/90">
                 {yaml || 'No config.yaml found.'}
               </pre>
             </motion.div>
