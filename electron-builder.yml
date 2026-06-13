@@ -18,6 +18,11 @@ asarUnpack:
   - resources/icon.png
   - resources/icon-light.png
 artifactName: ${name}-${version}-${os}-${arch}.${ext}
+# Ad-hoc sign the macOS bundle ourselves. Adding our Info.plist/icon/resources
+# invalidates Electron's built-in linker signature; with no Developer ID to
+# re-sign with, electron-builder skips signing and ships a broken signature that
+# macOS reports as "damaged". This hook re-signs ad-hoc → valid (unnotarized).
+afterPack: ./build/afterPack.cjs
 publish:
   provider: github
 mac:

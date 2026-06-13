@@ -37,7 +37,10 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No code-signing certificates configured; ship unsigned builds.
+          # No Apple Developer ID: don't search the keychain for a real cert.
+          # macOS signing is handled by `mac.identity: '-'` (ad-hoc) in
+          # electron-builder.yml, which yields a valid (unnotarized) signature
+          # so downloads aren't flagged "damaged".
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           pnpm exec electron-vite build
