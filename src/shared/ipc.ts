@@ -12,6 +12,8 @@ export const IPC = {
   extras: 'ddev:extras',
   createExtra: 'ddev:create-extra',
   globalConfig: 'ddev:global-config',
+  resourceStats: 'ddev:resource-stats',
+  resourceLimits: 'ddev:resource-limits',
 
   // Operations (long-running, streamed)
   opRun: 'op:run',
@@ -38,6 +40,12 @@ export const IPC = {
 
   // Renderer → main: keep the dock/menu-bar icon in sync with the UI theme
   setTheme: 'app:set-theme',
+
+  // App preferences (not DDEV — stored in userData)
+  appSettings: 'app:settings',
+  setAppSettings: 'app:set-settings',
+  editorStatus: 'app:editor-status',
+  testEditor: 'app:test-editor',
 
   // App utilities
   openExternal: 'app:open-external',

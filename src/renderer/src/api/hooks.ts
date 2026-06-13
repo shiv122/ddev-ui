@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { useQuery, type UseQueryResult } from '@tanstack/react-query'
 import type {
+  AppSettings,
   BinaryInfo,
   DdevAddon,
   DdevDescribe,
@@ -8,10 +10,14 @@ import type {
   DdevSnapshot,
   DdevVersionInfo,
   DoctorReport,
+  EditorStatus,
   GlobalConfig,
-  ProjectExtras
+  ProjectExtras,
+  ProjectResourceUsage,
+  ServiceResourceLimit
 } from '@shared/types'
 import { queryKeys } from '@/lib/query-client'
+import { recordResourceSample } from '@/store/resource-history'
 
 export function useProjects(): UseQueryResult<DdevProject[]> {
   return useQuery({
@@ -93,5 +99,51 @@ export function useGlobalConfig(): UseQueryResult<GlobalConfig> {
   return useQuery({
     queryKey: queryKeys.globalConfig,
     queryFn: () => window.ddev.globalConfig()
+  })
+}
+
+/**
+ * Live per-project CPU/memory usage (one `docker stats` call). Pass the names
+ * of running projects; the query is disabled when there are none.
+ */
+export function useResourceStats(
+  runningProjects: string[]
+): UseQueryResult<Record<string, ProjectResourceUsage>> {
+  const query = useQuery({
+    queryKey: queryKeys.resourceStats,
+    queryFn: () => window.ddev.resourceStats(runningProjects),
+    enabled: runningProjects.length > 0,
+    refetchInterval: 4_000,
+    placeholderData: (prev) => prev
+  })
+
+  // Accumulate each reading into the rolling history that feeds the charts.
+  const { data, dataUpdatedAt } = query
+  useEffect(() => {
+    if (data) recordResourceSample(data)
+  }, [data, dataUpdatedAt])
+
+  return query
+}
+
+export function useResourceLimits(project: string): UseQueryResult<ServiceResourceLimit[]> {
+  return useQuery({
+    queryKey: queryKeys.resourceLimits(project),
+    queryFn: () => window.ddev.resourceLimits(project)
+  })
+}
+
+export function useAppSettings(): UseQueryResult<AppSettings> {
+  return useQuery({
+    queryKey: queryKeys.appSettings,
+    queryFn: () => window.ddev.appSettings(),
+    staleTime: Infinity
+  })
+}
+
+export function useEditorStatus(): UseQueryResult<EditorStatus> {
+  return useQuery({
+    queryKey: queryKeys.editorStatus,
+    queryFn: () => window.ddev.editorStatus()
   })
 }

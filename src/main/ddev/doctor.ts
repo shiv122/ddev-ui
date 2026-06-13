@@ -5,8 +5,8 @@ import { ddevClient } from './client'
 
 /**
  * Fast environment checks run at startup and from the Doctor page.
- * The thorough `ddev debug dockercheck` runs as a streamed operation instead,
- * since it builds containers and can take ~30s.
+ * The thorough `ddev utility` diagnostics (dockercheck, tls-diagnose, …) run as
+ * streamed operations instead, since they build containers / probe the network.
  */
 export async function runDoctor(): Promise<DoctorReport> {
   resetBinaryCache()

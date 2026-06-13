@@ -6,6 +6,7 @@ import iconLight from '../../resources/icon-light.png?asset'
 import { IPC } from '@shared/ipc'
 import { registerIpcHandlers } from './ipc'
 import { initBinaryOverrides, initLoginShellPath } from './ddev/binary'
+import { initAppSettings } from './settings'
 import { terminalManager } from './ddev/terminals'
 import { initTray, type TrayHandle } from './tray'
 
@@ -88,6 +89,7 @@ app.whenReady().then(async () => {
   // Packaged apps launched from Finder get a minimal PATH — resolve the real
   // login-shell PATH (Docker Desktop, OrbStack etc.) before anything runs ddev.
   initBinaryOverrides(app.getPath('userData'))
+  initAppSettings(app.getPath('userData'))
   await initLoginShellPath()
 
   app.on('browser-window-created', (_, window) => {

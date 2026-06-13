@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowUpRight, FolderGit2, Plus, Search } from 'lucide-react'
-import type { DdevProject } from '@shared/types'
+import { ArrowUpRight, Cpu, FolderGit2, MemoryStick, Plus, Search } from 'lucide-react'
+import type { DdevProject, ProjectResourceUsage } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,9 +10,11 @@ import { CountingNumber } from '@/components/animate-ui/primitives/texts/countin
 import { StatusBadge } from '@/components/app/status'
 import { ProjectActions } from '@/components/app/project-actions'
 import { ProjectTypeIcon } from '@/components/app/project-type-icon'
-import { useProjects } from '@/api/hooks'
+import { MiniSparkline } from '@/components/app/mini-sparkline'
+import { useProjects, useResourceStats } from '@/api/hooks'
+import { useResourceHistory } from '@/store/resource-history'
 import { useRouter } from '@/lib/router'
-import { firstLine, hostName, projectTypeLabel } from '@/lib/format'
+import { firstLine, formatBytes, hostName, projectTypeLabel } from '@/lib/format'
 
 function StatCard({ label, value, dim }: { label: string; value: number; dim?: boolean }): React.JSX.Element {
   return (
@@ -29,7 +31,45 @@ function StatCard({ label, value, dim }: { label: string; value: number; dim?: b
   )
 }
 
-function ProjectCard({ project, index }: { project: DdevProject; index: number }): React.JSX.Element {
+function ResourceRow({ usage }: { usage: ProjectResourceUsage }): React.JSX.Element {
+  const history = useResourceHistory(usage.project)
+  const cpuValues = history.map((s) => s.cpuPercent)
+
+  return (
+    <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <Cpu className="size-3.5 shrink-0 opacity-70" />
+        <span className="w-9 shrink-0 tabular-nums text-foreground/75">
+          {usage.cpuPercent.toFixed(0)}%
+        </span>
+        {cpuValues.length > 1 ? (
+          <MiniSparkline values={cpuValues} className="h-4 min-w-0 flex-1 text-foreground/65" />
+        ) : (
+          <div className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-foreground/10">
+            <div
+              className="h-full rounded-full bg-foreground/45 transition-all duration-500"
+              style={{ width: `${Math.min(usage.cpuPercent, 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5" title="Memory in use">
+        <MemoryStick className="size-3.5 opacity-70" />
+        <span className="tabular-nums text-foreground/75">{formatBytes(usage.memBytes)}</span>
+      </div>
+    </div>
+  )
+}
+
+function ProjectCard({
+  project,
+  index,
+  usage
+}: {
+  project: DdevProject
+  index: number
+  usage?: ProjectResourceUsage
+}): React.JSX.Element {
   const { navigate } = useRouter()
   const running = project.status === 'running'
 
@@ -78,6 +118,16 @@ function ProjectCard({ project, index }: { project: DdevProject; index: number }
             )}
           </div>
 
+          {running && (
+            <div className="flex h-4 items-center">
+              {usage && usage.services.length > 0 ? (
+                <ResourceRow usage={usage} />
+              ) : (
+                <span className="text-[11px] text-muted-foreground/40">measuring usage…</span>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-3 border-t border-border/60 pt-3">
             <span
               className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
@@ -112,7 +162,13 @@ export function DashboardPage(): React.JSX.Element {
     )
   }, [all, filter])
 
-  const runningCount = all.filter((p) => p.status === 'running').length
+  const runningNames = useMemo(
+    () => all.filter((p) => p.status === 'running').map((p) => p.name),
+    [all]
+  )
+  const stats = useResourceStats(runningNames)
+
+  const runningCount = runningNames.length
   const stoppedCount = all.filter((p) => p.status === 'stopped' || p.status === 'paused').length
   const problemCount = all.length - runningCount - stoppedCount - all.filter((p) => p.status === 'starting').length
 
@@ -176,7 +232,7 @@ export function DashboardPage(): React.JSX.Element {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((p, i) => (
-            <ProjectCard key={p.name} project={p} index={i} />
+            <ProjectCard key={p.name} project={p} index={i} usage={stats.data?.[p.name]} />
           ))}
         </div>
       )}

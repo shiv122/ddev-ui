@@ -1,19 +1,17 @@
-import { spawn } from 'node:child_process'
-import { dialog, ipcMain, shell } from 'electron'
+import { app, dialog, ipcMain, shell } from 'electron'
 import { IPC } from '@shared/ipc'
 import type { ExtraKind, FileDialogOptions, OperationRequest } from '@shared/types'
-import {
-  augmentedEnv,
-  binaryInfo,
-  findBinary,
-  setBinaryOverride,
-  type OverridableBinary
-} from './ddev/binary'
+import { binaryInfo, setBinaryOverride, type OverridableBinary } from './ddev/binary'
 import { ddevClient } from './ddev/client'
 import { runDoctor } from './ddev/doctor'
 import { createExtra, projectExtras, readGlobalConfig } from './ddev/extras'
+import { resourceStats } from './ddev/stats'
+import { readResourceLimits } from './ddev/resources'
 import { terminalManager } from './ddev/terminals'
 import { operationManager } from './ddev/operations'
+import { getAppSettings, setAppSettings } from './settings'
+import { editorStatus, launchEditor } from './editor'
+import type { AppSettings } from '@shared/types'
 
 export function registerIpcHandlers(): void {
   // ----- queries -----
@@ -30,6 +28,18 @@ export function registerIpcHandlers(): void {
     createExtra(project, kind, name)
   )
   ipcMain.handle(IPC.globalConfig, () => readGlobalConfig())
+  ipcMain.handle(IPC.resourceStats, (_e, projectNames: string[]) =>
+    resourceStats(Array.isArray(projectNames) ? projectNames : [])
+  )
+  ipcMain.handle(IPC.resourceLimits, async (_e, project: string) =>
+    readResourceLimits(await ddevClient.approotFor(project))
+  )
+
+  // ----- app preferences -----
+  ipcMain.handle(IPC.appSettings, () => getAppSettings())
+  ipcMain.handle(IPC.setAppSettings, (_e, patch: Partial<AppSettings>) => setAppSettings(patch))
+  ipcMain.handle(IPC.editorStatus, () => editorStatus())
+  ipcMain.handle(IPC.testEditor, () => launchEditor(app.getPath('home')))
 
   // ----- operations -----
   ipcMain.handle(IPC.opRun, (_e, request: OperationRequest) => operationManager.run(request))
@@ -71,11 +81,7 @@ export function registerIpcHandlers(): void {
   })
   ipcMain.handle(IPC.revealPath, (_e, path: string) => shell.showItemInFolder(path))
 
-  ipcMain.handle(IPC.openInEditor, (_e, path: string) => {
-    const code = findBinary('code') ?? findBinary('cursor')
-    if (!code) throw new Error('No editor CLI found — install the "code" command from VS Code')
-    spawn(code, [path], { detached: true, stdio: 'ignore', env: augmentedEnv() }).unref()
-  })
+  ipcMain.handle(IPC.openInEditor, (_e, path: string) => launchEditor(path))
 
   ipcMain.handle(IPC.selectDirectory, async (_e, options: FileDialogOptions = {}) => {
     const result = await dialog.showOpenDialog({

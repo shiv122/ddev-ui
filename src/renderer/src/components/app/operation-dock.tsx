@@ -8,6 +8,13 @@ import { useRouter } from '@/lib/router'
 import { cancelOperation, useOperations } from '@/store/operations'
 
 /**
+ * Operation kinds that stream into their own dedicated surface (Logs tab,
+ * Share dialog, Doctor diagnostics, Run terminal). Showing them in the dock
+ * too would duplicate the live output, so the dock ignores them.
+ */
+const SELF_HOSTED_KINDS = new Set(['logs', 'share', 'diagnose', 'exec'])
+
+/**
  * Bottom dock that appears while an operation is running (or just finished),
  * showing the live console. Collapsible; dismissed automatically when idle.
  */
@@ -17,8 +24,9 @@ export function OperationDock(): React.JSX.Element | null {
   const [expanded, setExpanded] = useState(true)
   const [dismissedId, setDismissedId] = useState<string | null>(null)
 
-  const running = operations.filter((o) => o.status === 'running')
-  const current = running[0] ?? operations[0] ?? null
+  const dockable = operations.filter((o) => !SELF_HOSTED_KINDS.has(o.request.kind))
+  const running = dockable.filter((o) => o.status === 'running')
+  const current = running[0] ?? dockable[0] ?? null
   const visible = current !== null && current.id !== dismissedId && (running.length > 0 || currentRecent(current.startedAt))
 
   // New operation re-opens a dismissed dock.

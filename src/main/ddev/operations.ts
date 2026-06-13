@@ -11,6 +11,7 @@ import type {
 } from '@shared/types'
 import { augmentedEnv, ddevBinary } from './binary'
 import { ddevClient } from './client'
+import { writeResourceLimits } from './resources'
 import { materializeTemplate } from './templates'
 
 interface OperationStep {
@@ -285,12 +286,17 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         ],
         lock: null
       }
-    case 'dockercheck':
+    case 'diagnose': {
+      // `ddev utility <target>` — read-only diagnostics, streamed as text.
+      // Run inside the project dir when one is given so project-aware checks
+      // (tls, ports, mutagen, xdebug) have context.
+      const cwd = req.project ? await approot(req.project) : undefined
       return {
-        title: 'Docker environment check',
-        steps: [{ args: ['debug', 'dockercheck'], json: false }],
+        title: `Diagnose — ${req.target}`,
+        steps: [{ args: ['utility', req.target], cwd, json: false }],
         lock: null
       }
+    }
     case 'clean-images':
       return {
         title: 'Remove unused DDEV images',
@@ -342,6 +348,16 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         steps: [{ args, json: true }],
         lock: 'global'
       }
+    }
+    case 'set-resource-limits': {
+      // ddev has no per-service limit flag — write a managed compose override,
+      // then restart so the new limits take effect.
+      const root = await approot(req.project)
+      await writeResourceLimits(root, req.limits)
+      const steps: OperationStep[] = req.restartAfter
+        ? [{ args: ['restart', req.project], json: true }]
+        : []
+      return { title: `Apply resource limits — ${req.project}`, steps, lock: req.project }
     }
   }
 }

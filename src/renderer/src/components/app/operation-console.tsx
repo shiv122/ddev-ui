@@ -3,6 +3,11 @@ import type { OperationLine } from '@shared/types'
 import { cn } from '@/lib/utils'
 import { useOperationLines } from '@/store/operations'
 
+// Strip ANSI escape sequences (color/SGR codes) — ddev's diagnose commands
+// emit them even when not attached to a TTY, and the console renders plain text.
+// eslint-disable-next-line no-control-regex
+const ANSI_RE = /\x1b\[[0-9;]*[A-Za-z]/g
+
 const LEVEL_CLASSES: Record<OperationLine['level'], string> = {
   debug: 'text-muted-foreground/60',
   info: 'text-foreground/90',
@@ -47,7 +52,7 @@ export function OperationConsole({
       ) : (
         lines.map((line, i) => (
           <div key={i} className={cn('whitespace-pre-wrap break-all', LEVEL_CLASSES[line.level])}>
-            {line.text}
+            {line.text.replace(ANSI_RE, '')}
           </div>
         ))
       )}

@@ -1,7 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { IPC } from '@shared/ipc'
 import type {
+  AppSettings,
   BinaryInfo,
+  EditorStatus,
   DdevAddon,
   DdevDescribe,
   DdevInstalledAddon,
@@ -13,6 +15,8 @@ import type {
   FileDialogOptions,
   GlobalConfig,
   ProjectExtras,
+  ProjectResourceUsage,
+  ServiceResourceLimit,
   OperationDescriptor,
   OperationEvent,
   OperationLine,
@@ -33,6 +37,18 @@ const api = {
   createExtra: (project: string, kind: ExtraKind, name: string): Promise<{ path: string }> =>
     ipcRenderer.invoke(IPC.createExtra, project, kind, name),
   globalConfig: (): Promise<GlobalConfig> => ipcRenderer.invoke(IPC.globalConfig),
+  resourceStats: (projectNames: string[]): Promise<Record<string, ProjectResourceUsage>> =>
+    ipcRenderer.invoke(IPC.resourceStats, projectNames),
+  resourceLimits: (project: string): Promise<ServiceResourceLimit[]> =>
+    ipcRenderer.invoke(IPC.resourceLimits, project),
+
+  appSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.appSettings),
+  setAppSettings: (patch: Partial<AppSettings>): Promise<AppSettings> =>
+    ipcRenderer.invoke(IPC.setAppSettings, patch),
+  editorStatus: (): Promise<EditorStatus> => ipcRenderer.invoke(IPC.editorStatus),
+  testEditor: (): Promise<void> => ipcRenderer.invoke(IPC.testEditor),
+  /** Host platform, for OS-specific UI hints. */
+  platform: process.platform as NodeJS.Platform,
 
   runOperation: (request: OperationRequest): Promise<OperationDescriptor> =>
     ipcRenderer.invoke(IPC.opRun, request),

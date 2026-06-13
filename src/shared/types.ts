@@ -166,6 +166,75 @@ export interface GlobalConfig {
   raw: string
 }
 
+/* ------------------------------------------------------------------ */
+/* Resource usage & limits                                             */
+/* ------------------------------------------------------------------ */
+
+/** Live `docker stats` reading for a single container of a project. */
+export interface ServiceResourceUsage {
+  /** Service name as ddev knows it (web, db, redis, …). */
+  service: string
+  /** Full container name (ddev-<project>-<service>). */
+  container: string
+  /** CPU usage as a percentage of one core (can exceed 100 on multi-core). */
+  cpuPercent: number
+  /** Memory currently used, in bytes. */
+  memBytes: number
+  /** Container memory limit, in bytes (host total when no limit is set). */
+  memLimitBytes: number
+  /** Memory used as a percentage of the limit. */
+  memPercent: number
+}
+
+/** Aggregated live resource usage for one project (sum across its services). */
+export interface ProjectResourceUsage {
+  project: string
+  cpuPercent: number
+  memBytes: number
+  services: ServiceResourceUsage[]
+}
+
+/**
+ * A user-defined resource ceiling for one service, applied via a generated
+ * `.ddev/docker-compose.resources.yaml` override. Empty string = no limit.
+ */
+export interface ServiceResourceLimit {
+  service: string
+  /** CPU cores, e.g. "1.5". Empty clears the limit. */
+  cpus: string
+  /** Memory with unit, e.g. "1024M" or "2g". Empty clears the limit. */
+  memory: string
+}
+
+/** Editor launched by "Open in editor". `auto` falls back to VS Code/Cursor. */
+export type EditorPreset =
+  | 'auto'
+  | 'code'
+  | 'cursor'
+  | 'webstorm'
+  | 'phpstorm'
+  | 'subl'
+  | 'zed'
+  | 'custom'
+
+/** App-level (not DDEV) preferences, persisted in userData/app-settings.json. */
+export interface AppSettings {
+  editorPreset: EditorPreset
+  /**
+   * Command line used when editorPreset is 'custom'. May be a bare command
+   * (`code`), a full path, or include args and a `{path}` placeholder
+   * (e.g. `code --reuse-window {path}`, `open -a "Sublime Text"`).
+   */
+  editorCommand: string
+}
+
+/** Whether the configured editor can actually be launched, for the Settings UI. */
+export interface EditorStatus {
+  ok: boolean
+  /** Human-readable resolution or the reason it can't be launched. */
+  detail: string
+}
+
 /** Result of the environment doctor checks. */
 export interface DoctorCheck {
   id: 'ddev-binary' | 'ddev-version' | 'docker-cli' | 'docker-daemon' | 'mkcert' | 'tunnel'
@@ -251,7 +320,7 @@ export type OperationRequest =
     }
   | { kind: 'logs'; project: string; service: string; follow: boolean; tail: number }
   | { kind: 'exec'; project: string; service: string; command: string }
-  | { kind: 'dockercheck' }
+  | { kind: 'diagnose'; target: DiagnoseTarget; project?: string }
   | { kind: 'composer'; project: string; args: string }
   | { kind: 'share'; project: string; provider?: 'ngrok' | 'cloudflared'; providerArgs?: string }
   | { kind: 'clean-images' }
@@ -267,6 +336,24 @@ export type OperationRequest =
         routerHttpsPort: string
       }>
     }
+  | {
+      kind: 'set-resource-limits'
+      project: string
+      limits: ServiceResourceLimit[]
+      restartAfter?: boolean
+    }
+
+/**
+ * `ddev utility <target>` diagnostic commands surfaced in the Doctor page.
+ * Each streams human-readable, actionable output (no --json-output).
+ */
+export type DiagnoseTarget =
+  | 'diagnose'
+  | 'dockercheck'
+  | 'tls-diagnose'
+  | 'port-diagnose'
+  | 'mutagen-diagnose'
+  | 'xdebug-diagnose'
 
 export type OperationStatus = 'running' | 'succeeded' | 'failed' | 'cancelled'
 

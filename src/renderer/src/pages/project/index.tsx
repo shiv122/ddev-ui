@@ -15,6 +15,7 @@ import { DatabaseTab } from './database-tab'
 import { LogsTab } from './logs-tab'
 import { AddonsTab } from './addons-tab'
 import { ConfigTab } from './config-tab'
+import { ResourcesTab } from './resources-tab'
 import { RunTab } from './run-tab'
 import { AdvancedTab } from './advanced-tab'
 
@@ -115,6 +116,7 @@ export function ProjectPage({
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="addons">Add-ons</TabsTrigger>
             <TabsTrigger value="config">Config</TabsTrigger>
+            <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="run" className="gap-1.5">
               <TerminalSquare className="size-3.5" /> Run
             </TabsTrigger>
@@ -134,6 +136,9 @@ export function ProjectPage({
           </TabsContent>
           <TabsContent value="config">
             <ConfigTab info={info} />
+          </TabsContent>
+          <TabsContent value="resources">
+            <ResourcesTab info={info} />
           </TabsContent>
           <TabsContent value="run">
             <RunTab info={info} />

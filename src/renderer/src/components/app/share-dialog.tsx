@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
+import { OperationConsole } from '@/components/app/operation-console'
 import { useDoctor } from '@/api/hooks'
 import {
   cancelOperation,
@@ -157,7 +158,7 @@ export function ShareDialog({ info }: { info: DdevDescribe }): React.JSX.Element
         {available.length === 0 ? (
           <SetupInstructions />
         ) : shareOp ? (
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <div className="rounded-xl border border-border/70 bg-black/30 p-4">
               {publicUrl ? (
                 <div className="flex items-center gap-2">
@@ -186,13 +187,7 @@ export function ShareDialog({ info }: { info: DdevDescribe }): React.JSX.Element
                 </div>
               )}
             </div>
-            <div className="dark scrollbar-thin max-h-32 overflow-auto rounded-lg border bg-[#101010] p-2.5 font-mono text-[10px] leading-relaxed text-muted-foreground">
-              {lines.slice(-12).map((l, i) => (
-                <div key={i} className="truncate">
-                  {l.text}
-                </div>
-              ))}
-            </div>
+            <OperationConsole operationId={shareOp.id} className="h-32 text-[10px]" />
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">
                 Tunnel stays open until stopped or the app quits.

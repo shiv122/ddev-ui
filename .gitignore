@@ -28,5 +28,8 @@ Thumbs.db
 coverage/
 .eslintcache
 
+# electron-vite transpiles the TS config to a timestamped temp file
+electron.vite.config.*.mjs
+
 # Stray ddev configs from local testing (this repo is not a ddev project)
 .ddev/

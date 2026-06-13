@@ -21,7 +21,11 @@ export const queryKeys = {
   configFile: (name: string) => ['config-file', name] as const,
   extras: (name: string) => ['extras', name] as const,
   globalConfig: ['global-config'] as const,
-  binaries: ['binaries'] as const
+  binaries: ['binaries'] as const,
+  resourceStats: ['resource-stats'] as const,
+  resourceLimits: (name: string) => ['resource-limits', name] as const,
+  appSettings: ['app-settings'] as const,
+  editorStatus: ['editor-status'] as const
 }
 
 /** Refresh everything affected by a binary path change (ddev/docker located). */
@@ -35,12 +39,14 @@ export function invalidateAfterBinaryChange(): void {
 /** Invalidate everything that may change after a ddev operation completes. */
 export function invalidateAfterOperation(project?: string): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.projects })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.resourceStats })
   if (project) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.describe(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.addonsInstalled(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.snapshots(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.configFile(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.extras(project) })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.resourceLimits(project) })
   } else {
     void queryClient.invalidateQueries({ queryKey: ['describe'] })
     void queryClient.invalidateQueries({ queryKey: queryKeys.globalConfig })
