@@ -7,6 +7,8 @@ import { runDoctor } from './ddev/doctor'
 import { createExtra, projectExtras, readGlobalConfig } from './ddev/extras'
 import { resourceStats } from './ddev/stats'
 import { readResourceLimits } from './ddev/resources'
+import { serviceConfig, xdebugStatus } from './ddev/services'
+import { projectsGraph } from './ddev/links'
 import { terminalManager } from './ddev/terminals'
 import { operationManager } from './ddev/operations'
 import { getAppSettings, setAppSettings } from './settings'
@@ -34,6 +36,11 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.resourceLimits, async (_e, project: string) =>
     readResourceLimits(await ddevClient.approotFor(project))
   )
+  ipcMain.handle(IPC.serviceConfig, (_e, project: string, service: string) =>
+    serviceConfig(project, service)
+  )
+  ipcMain.handle(IPC.xdebugStatus, (_e, project: string) => xdebugStatus(project))
+  ipcMain.handle(IPC.projectsGraph, () => projectsGraph())
 
   // ----- app preferences -----
   ipcMain.handle(IPC.appSettings, () => getAppSettings())

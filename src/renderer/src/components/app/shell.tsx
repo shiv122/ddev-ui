@@ -9,7 +9,8 @@ import {
   Power,
   Settings2,
   Stethoscope,
-  Sun
+  Sun,
+  Waypoints
 } from 'lucide-react'
 import logoDark from '@/assets/logo-dark.png'
 import logoLight from '@/assets/logo-light.png'
@@ -45,6 +46,12 @@ const NAV: NavItem[] = [
     icon: Blocks,
     route: { view: 'addons' },
     matches: (r) => r.view === 'addons'
+  },
+  {
+    label: 'Connections',
+    icon: Waypoints,
+    route: { view: 'connections' },
+    matches: (r) => r.view === 'connections'
   },
   {
     label: 'Activity',

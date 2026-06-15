@@ -1,6 +1,6 @@
 {
   "name": "ddevui",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A desktop UI for managing DDEV local development projects",
   "main": "./out/main/index.js",
   "author": "Shivesh Tripathi",
@@ -29,6 +29,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@icons-pack/react-simple-icons": "^13.13.0",
+    "@xyflow/react": "^12.11.0",
     "node-pty": "^1.1.0",
     "radix-ui": "^1.5.0",
     "recharts": "^2.15.4"

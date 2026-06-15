@@ -14,6 +14,9 @@ export const IPC = {
   globalConfig: 'ddev:global-config',
   resourceStats: 'ddev:resource-stats',
   resourceLimits: 'ddev:resource-limits',
+  serviceConfig: 'ddev:service-config',
+  xdebugStatus: 'ddev:xdebug-status',
+  projectsGraph: 'ddev:projects-graph',
 
   // Operations (long-running, streamed)
   opRun: 'op:run',

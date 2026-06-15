@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { FolderOpen, Globe, Mail, TerminalSquare } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { ShareDialog } from '@/components/app/share-dialog'
 import { useDescribe, useProjects } from '@/api/hooks'
 import { projectTypeLabel } from '@/lib/format'
 import { OverviewTab } from './overview-tab'
+import { ServicesTab } from './services-tab'
 import { DatabaseTab } from './database-tab'
 import { LogsTab } from './logs-tab'
 import { AddonsTab } from './addons-tab'
@@ -31,6 +33,15 @@ export function ProjectPage({
   const listEntry = projects.data?.find((p) => p.name === name)
   const info = describe.data
   const running = info?.status === 'running'
+
+  const [tab, setTab] = useState(initialTab ?? 'overview')
+  // When the Services tab sends the user to a shell/logs, preselect that
+  // container; the nonce remounts the target tab so it re-reads the choice.
+  const [focus, setFocus] = useState<{ service: string; nonce: number }>({ service: 'web', nonce: 0 })
+  const openServiceIn = (target: 'run' | 'logs', service: string): void => {
+    setFocus((f) => ({ service, nonce: f.nonce + 1 }))
+    setTab(target)
+  }
 
   return (
     <div className="mx-auto w-full max-w-[1560px] space-y-5 p-6">
@@ -109,9 +120,10 @@ export function ProjectPage({
           Could not load project details: {(describe.error as Error).message}
         </div>
       ) : info ? (
-        <Tabs defaultValue={initialTab ?? 'overview'} className="gap-5">
+        <Tabs value={tab} onValueChange={setTab} className="gap-5">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="services">Services</TabsTrigger>
             <TabsTrigger value="database">Database</TabsTrigger>
             <TabsTrigger value="logs">Logs</TabsTrigger>
             <TabsTrigger value="addons">Add-ons</TabsTrigger>
@@ -125,11 +137,14 @@ export function ProjectPage({
           <TabsContent value="overview">
             <OverviewTab info={info} />
           </TabsContent>
+          <TabsContent value="services">
+            <ServicesTab info={info} onOpenService={openServiceIn} onOpenTab={setTab} />
+          </TabsContent>
           <TabsContent value="database">
             <DatabaseTab info={info} />
           </TabsContent>
           <TabsContent value="logs">
-            <LogsTab info={info} />
+            <LogsTab key={`logs-${focus.nonce}`} info={info} initialService={focus.service} />
           </TabsContent>
           <TabsContent value="addons">
             <AddonsTab info={info} />
@@ -141,7 +156,7 @@ export function ProjectPage({
             <ResourcesTab info={info} />
           </TabsContent>
           <TabsContent value="run">
-            <RunTab info={info} />
+            <RunTab key={`run-${focus.nonce}`} info={info} initialService={focus.service} />
           </TabsContent>
           <TabsContent value="advanced">
             <AdvancedTab info={info} />

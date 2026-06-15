@@ -14,9 +14,17 @@ import {
 import { OperationConsole } from '@/components/app/operation-console'
 import { cancelOperation, runOperation, useOperations } from '@/store/operations'
 
-export function LogsTab({ info }: { info: DdevDescribe }): React.JSX.Element {
+export function LogsTab({
+  info,
+  initialService
+}: {
+  info: DdevDescribe
+  initialService?: string
+}): React.JSX.Element {
   const serviceNames = Object.keys(info.services ?? {})
-  const [service, setService] = useState(serviceNames.includes('web') ? 'web' : (serviceNames[0] ?? 'web'))
+  const [service, setService] = useState(
+    initialService ?? (serviceNames.includes('web') ? 'web' : (serviceNames[0] ?? 'web'))
+  )
   const [follow, setFollow] = useState(true)
   const [tail, setTail] = useState('200')
   const [opId, setOpId] = useState<string | null>(null)

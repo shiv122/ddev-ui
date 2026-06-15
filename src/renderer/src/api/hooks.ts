@@ -13,7 +13,9 @@ import type {
   EditorStatus,
   GlobalConfig,
   ProjectExtras,
+  ProjectGraph,
   ProjectResourceUsage,
+  ServiceComposeConfig,
   ServiceResourceLimit
 } from '@shared/types'
 import { queryKeys } from '@/lib/query-client'
@@ -130,6 +132,42 @@ export function useResourceLimits(project: string): UseQueryResult<ServiceResour
   return useQuery({
     queryKey: queryKeys.resourceLimits(project),
     queryFn: () => window.ddev.resourceLimits(project)
+  })
+}
+
+/** Rendered compose block + editable override files for one service (lazy). */
+export function useServiceConfig(
+  project: string,
+  service: string,
+  enabled: boolean
+): UseQueryResult<ServiceComposeConfig> {
+  return useQuery({
+    queryKey: queryKeys.serviceConfig(project, service),
+    queryFn: () => window.ddev.serviceConfig(project, service),
+    enabled
+  })
+}
+
+/**
+ * Live Xdebug state via `ddev xdebug status`. The describe payload's
+ * `xdebug_enabled` only reflects the configured default, not the runtime
+ * toggle, so the switch must read this instead.
+ */
+export function useXdebugStatus(project: string, enabled: boolean): UseQueryResult<boolean> {
+  return useQuery({
+    queryKey: queryKeys.xdebugStatus(project),
+    queryFn: () => window.ddev.xdebugStatus(project),
+    enabled,
+    staleTime: 15_000
+  })
+}
+
+/** Project nodes + cross-project links for the connections map. */
+export function useProjectsGraph(): UseQueryResult<ProjectGraph> {
+  return useQuery({
+    queryKey: queryKeys.projectsGraph,
+    queryFn: () => window.ddev.projectsGraph(),
+    refetchInterval: 8_000
   })
 }
 

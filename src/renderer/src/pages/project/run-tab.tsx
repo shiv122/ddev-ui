@@ -104,9 +104,15 @@ function ShellSession({ project, service, onExited }: ShellSessionProps): React.
   return <div ref={containerRef} className="h-full w-full" />
 }
 
-export function RunTab({ info }: { info: DdevDescribe }): React.JSX.Element {
+export function RunTab({
+  info,
+  initialService
+}: {
+  info: DdevDescribe
+  initialService?: string
+}): React.JSX.Element {
   const serviceNames = Object.keys(info.services ?? {})
-  const [service, setService] = useState('web')
+  const [service, setService] = useState(initialService ?? 'web')
   const [sessionNonce, setSessionNonce] = useState(0)
   const [exited, setExited] = useState(false)
   const running = info.status === 'running'

@@ -9,16 +9,22 @@ import type {
   OperationRequest,
   OperationStatus
 } from '@shared/types'
-import { augmentedEnv, ddevBinary } from './binary'
+import { augmentedEnv, ddevBinary, findBinary } from './binary'
 import { ddevClient } from './client'
 import { writeResourceLimits } from './resources'
-import { materializeTemplate } from './templates'
+import { writeLinks } from './links'
 
 interface OperationStep {
   args: string[]
   cwd?: string
   /** Append --json-output and parse lines into level/msg pairs. */
   json: boolean
+  /** Binary to run; defaults to ddev. `docker` is resolved on PATH. */
+  bin?: 'docker'
+}
+
+function stepCommand(step: OperationStep): string {
+  return `${step.bin ?? 'ddev'} ${step.args.join(' ')}`
 }
 
 interface OperationPlan {
@@ -148,18 +154,18 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         ],
         lock: req.project
       }
-    case 'addon-install':
-      return {
-        title: `Install add-on ${req.addon}`,
-        steps: [
-          {
-            args: ['add-on', 'get', req.addon, ...(req.version ? ['--version', req.version] : [])],
-            cwd: await approot(req.project),
-            json: true
-          }
-        ],
-        lock: req.project
-      }
+    case 'addon-install': {
+      const cwd = await approot(req.project)
+      const steps: OperationStep[] = [
+        {
+          args: ['add-on', 'get', req.addon, ...(req.version ? ['--version', req.version] : [])],
+          cwd,
+          json: true
+        }
+      ]
+      if (req.restartAfter) steps.push({ args: ['restart', req.project], json: true })
+      return { title: `Install add-on ${req.addon}`, steps, lock: req.project }
+    }
     case 'addon-remove':
       return {
         title: `Remove add-on ${req.addon}`,
@@ -169,33 +175,29 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         lock: req.project
       }
     case 'create-project': {
-      // App templates ride on the `generic` type: write our config.<id>.yaml
-      // override + extra files first, then let ddev config create the base.
-      if (req.template) await materializeTemplate(req.dir, req.template)
-      const configArgs = req.template
-        ? [
-            'config',
-            '--project-name',
-            req.name,
-            '--project-type=generic',
-            '--webserver-type=generic',
-            ...(req.omitDb ? ['--omit-containers=db'] : req.database ? ['--database', req.database] : []),
-            ...(req.nodejsVersion ? ['--nodejs-version', req.nodejsVersion] : [])
-          ]
-        : [
-            'config',
-            '--project-name',
-            req.name,
-            '--project-type',
-            req.projectType,
-            ...(req.docroot ? ['--docroot', req.docroot] : []),
-            ...(req.phpVersion ? ['--php-version', req.phpVersion] : []),
-            ...(req.database ? ['--database', req.database] : []),
-            ...(req.webserverType ? ['--webserver-type', req.webserverType] : []),
-            ...(req.nodejsVersion ? ['--nodejs-version', req.nodejsVersion] : [])
-          ]
+      const configArgs = [
+        'config',
+        '--project-name',
+        req.name,
+        '--project-type',
+        req.projectType,
+        ...(req.docroot ? ['--docroot', req.docroot] : []),
+        ...(req.phpVersion ? ['--php-version', req.phpVersion] : []),
+        ...(req.database ? ['--database', req.database] : []),
+        ...(req.webserverType ? ['--webserver-type', req.webserverType] : []),
+        ...(req.nodejsVersion ? ['--nodejs-version', req.nodejsVersion] : [])
+      ]
       const steps: OperationStep[] = [{ args: configArgs, cwd: req.dir, json: true }]
-      if (req.startAfter) steps.push({ args: ['start', '-y'], cwd: req.dir, json: true })
+      const addons = req.addons ?? []
+      // Add-ons need the project up to run their install actions; force a start
+      // when any were chosen, install them, then restart so they come online.
+      if (req.startAfter || addons.length > 0) {
+        steps.push({ args: ['start', '-y'], cwd: req.dir, json: true })
+      }
+      for (const addon of addons) {
+        steps.push({ args: ['add-on', 'get', addon], cwd: req.dir, json: true })
+      }
+      if (addons.length > 0) steps.push({ args: ['restart'], cwd: req.dir, json: true })
       return { title: `Create project ${req.name}`, steps, lock: req.name }
     }
     case 'update-config': {
@@ -349,6 +351,34 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         lock: 'global'
       }
     }
+    case 'service-action': {
+      const verb = req.action === 'stop' ? 'Stop' : req.action === 'start' ? 'Start' : 'Restart'
+      // xhgui is a DDEV-managed profiler toggled via `ddev xhgui on|off`; it has
+      // no standalone container, so docker can't act on it.
+      if (req.service === 'xhgui') {
+        return {
+          title: `${verb} xhgui — ${req.project}`,
+          steps: [
+            { args: ['xhgui', req.action === 'stop' ? 'off' : 'on'], cwd: await approot(req.project), json: false }
+          ],
+          lock: req.project
+        }
+      }
+      return {
+        title: `${verb} ${req.service} — ${req.project}`,
+        steps: [{ bin: 'docker', args: [req.action, `ddev-${req.project}-${req.service}`], json: false }],
+        lock: `${req.project}:${req.service}`
+      }
+    }
+    case 'set-links': {
+      // Write the managed env override, then restart the consumer so the new
+      // connection env vars land in its web container.
+      await writeLinks(req.project, req.links)
+      const steps: OperationStep[] = req.restartAfter
+        ? [{ args: ['restart', req.project], json: true }]
+        : []
+      return { title: `Update connections — ${req.project}`, steps, lock: req.project }
+    }
     case 'set-resource-limits': {
       // ddev has no per-service limit flag — write a managed compose override,
       // then restart so the new limits take effect.
@@ -387,7 +417,7 @@ class OperationManager {
       id,
       request: req,
       title: plan.title,
-      command: plan.steps.map((s) => `ddev ${s.args.join(' ')}`).join(' && '),
+      command: plan.steps.map(stepCommand).join(' && '),
       status: 'running',
       startedAt: Date.now()
     }
@@ -420,7 +450,7 @@ class OperationManager {
 
     for (const step of plan.steps) {
       if (op.cancelled) break
-      this.emitLine(op, { level: 'info', text: `$ ddev ${step.args.join(' ')}` })
+      this.emitLine(op, { level: 'info', text: `$ ${stepCommand(step)}` })
       exitCode = await this.runStep(bin, op, step)
       if (op.cancelled || exitCode !== 0) {
         failed = !op.cancelled
@@ -438,8 +468,14 @@ class OperationManager {
 
   private runStep(bin: string, op: RunningOperation, step: OperationStep): Promise<number | null> {
     return new Promise((resolvePromise) => {
+      const exe = step.bin === 'docker' ? findBinary('docker') : bin
+      if (!exe) {
+        this.emitLine(op, { level: 'error', text: `${step.bin} binary not found on PATH` })
+        resolvePromise(1)
+        return
+      }
       const args = step.json ? [...step.args, '--json-output'] : step.args
-      const child = spawn(bin, args, {
+      const child = spawn(exe, args, {
         cwd: step.cwd,
         env: augmentedEnv(),
         stdio: ['ignore', 'pipe', 'pipe']

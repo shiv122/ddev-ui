@@ -24,6 +24,9 @@ export const queryKeys = {
   binaries: ['binaries'] as const,
   resourceStats: ['resource-stats'] as const,
   resourceLimits: (name: string) => ['resource-limits', name] as const,
+  serviceConfig: (name: string, service: string) => ['service-config', name, service] as const,
+  xdebugStatus: (name: string) => ['xdebug-status', name] as const,
+  projectsGraph: ['projects-graph'] as const,
   appSettings: ['app-settings'] as const,
   editorStatus: ['editor-status'] as const
 }
@@ -40,6 +43,7 @@ export function invalidateAfterBinaryChange(): void {
 export function invalidateAfterOperation(project?: string): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.projects })
   void queryClient.invalidateQueries({ queryKey: queryKeys.resourceStats })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.projectsGraph })
   if (project) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.describe(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.addonsInstalled(project) })
@@ -47,6 +51,8 @@ export function invalidateAfterOperation(project?: string): void {
     void queryClient.invalidateQueries({ queryKey: queryKeys.configFile(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.extras(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.resourceLimits(project) })
+    void queryClient.invalidateQueries({ queryKey: ['service-config', project] })
+    void queryClient.invalidateQueries({ queryKey: queryKeys.xdebugStatus(project) })
   } else {
     void queryClient.invalidateQueries({ queryKey: ['describe'] })
     void queryClient.invalidateQueries({ queryKey: queryKeys.globalConfig })

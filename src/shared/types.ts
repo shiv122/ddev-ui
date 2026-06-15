@@ -139,6 +139,54 @@ export interface DdevSnapshot {
 export type DdevVersionInfo = Record<string, string>
 
 /** Customization files discovered in a project's .ddev directory. */
+/** Lifecycle action for a single container. */
+export type ServiceAction = 'start' | 'stop' | 'restart'
+
+/**
+ * A cross-project service link. All DDEV projects share the `ddev_default`
+ * Docker network, so the consumer's web container can reach the provider's
+ * service at `ddev-<provider>-<service>`. A link injects connection env vars
+ * (HOST/PORT) into the consumer and is drawn as an edge in the connections map.
+ */
+export interface ProjectLink {
+  /** Consumer project (receives the env vars). */
+  from: string
+  /** Provider project. */
+  to: string
+  /** Provider service name (db, redis, ...). */
+  service: string
+  /** Env var prefix in the consumer, e.g. CORE_DB. */
+  envPrefix: string
+  /** Provider container hostname (ddev-<to>-<service>). */
+  host: string
+  /** Provider service internal port, when known. */
+  port?: number
+}
+
+export interface ProjectGraphNode {
+  name: string
+  type: string
+  status: string
+  approot: string
+  /** Service names this project can offer to others (from its compose). */
+  services: string[]
+}
+
+/** Everything the connections map needs: project nodes plus existing links. */
+export interface ProjectGraph {
+  nodes: ProjectGraphNode[]
+  links: ProjectLink[]
+}
+
+/** Compose configuration surfaced for a single service in the Services tab. */
+export interface ServiceComposeConfig {
+  /** The service's block from the rendered .ddev-docker-compose-full.yaml (read-only), or null. */
+  rendered: string | null
+  /** Editable docker-compose.<service>*.yaml override filenames in .ddev (may be empty). */
+  overrideFiles: string[]
+  approot: string
+}
+
 export interface ProjectExtras {
   /** docker-compose.<name>.yaml files (filenames). */
   composeFiles: string[]
@@ -278,16 +326,12 @@ export type OperationRequest =
   | { kind: 'snapshot-cleanup'; project: string }
   | { kind: 'import-db'; project: string; file: string; targetDb?: string; noDrop?: boolean }
   | { kind: 'export-db'; project: string; file: string; sourceDb?: string }
-  | { kind: 'addon-install'; project: string; addon: string; version?: string }
+  | { kind: 'addon-install'; project: string; addon: string; version?: string; restartAfter?: boolean }
   | { kind: 'addon-remove'; project: string; addon: string }
   | {
       kind: 'create-project'
       dir: string
       name: string
-      /** DDevUI app template id (templates.ts) — overrides projectType with `generic`. */
-      template?: string
-      /** Skip the db container entirely (--omit-containers=db). */
-      omitDb?: boolean
       projectType: string
       docroot?: string
       phpVersion?: string
@@ -295,6 +339,8 @@ export type OperationRequest =
       webserverType?: string
       nodejsVersion?: string
       startAfter: boolean
+      /** Add-on ids (`owner/repo`) to install after the project starts. */
+      addons?: string[]
     }
   | {
       kind: 'update-config'
@@ -326,6 +372,8 @@ export type OperationRequest =
   | { kind: 'clean-images' }
   | { kind: 'debug-rebuild'; project: string; service: string }
   | { kind: 'mutagen-reset'; project: string }
+  | { kind: 'service-action'; project: string; service: string; action: ServiceAction }
+  | { kind: 'set-links'; project: string; links: ProjectLink[]; restartAfter?: boolean }
   | { kind: 'custom-command'; project: string; command: string }
   | {
       kind: 'global-config'

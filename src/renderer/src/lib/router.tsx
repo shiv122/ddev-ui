@@ -5,6 +5,7 @@ export type Route =
   | { view: 'project'; name: string; tab?: string }
   | { view: 'create' }
   | { view: 'addons' }
+  | { view: 'connections' }
   | { view: 'operations'; selected?: string }
   | { view: 'doctor' }
   | { view: 'settings' }

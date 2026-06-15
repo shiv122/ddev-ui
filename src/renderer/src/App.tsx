@@ -6,6 +6,7 @@ import { DashboardPage } from '@/pages/dashboard'
 import { ProjectPage } from '@/pages/project'
 import { CreateProjectPage } from '@/pages/create-project'
 import { AddonsPage } from '@/pages/addons'
+import { ConnectionsPage } from '@/pages/connections'
 import { OperationsPage } from '@/pages/operations'
 import { DoctorPage } from '@/pages/doctor'
 import { SettingsPage } from '@/pages/settings'
@@ -44,6 +45,10 @@ export default function App(): React.JSX.Element {
     case 'addons':
       page = <AddonsPage />
       key = routeKey('addons')
+      break
+    case 'connections':
+      page = <ConnectionsPage />
+      key = routeKey('connections')
       break
     case 'operations':
       page = <OperationsPage selected={route.selected} />

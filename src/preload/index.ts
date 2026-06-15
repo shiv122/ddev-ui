@@ -15,7 +15,9 @@ import type {
   FileDialogOptions,
   GlobalConfig,
   ProjectExtras,
+  ProjectGraph,
   ProjectResourceUsage,
+  ServiceComposeConfig,
   ServiceResourceLimit,
   OperationDescriptor,
   OperationEvent,
@@ -41,6 +43,11 @@ const api = {
     ipcRenderer.invoke(IPC.resourceStats, projectNames),
   resourceLimits: (project: string): Promise<ServiceResourceLimit[]> =>
     ipcRenderer.invoke(IPC.resourceLimits, project),
+  serviceConfig: (project: string, service: string): Promise<ServiceComposeConfig> =>
+    ipcRenderer.invoke(IPC.serviceConfig, project, service),
+  xdebugStatus: (project: string): Promise<boolean> =>
+    ipcRenderer.invoke(IPC.xdebugStatus, project),
+  projectsGraph: (): Promise<ProjectGraph> => ipcRenderer.invoke(IPC.projectsGraph),
 
   appSettings: (): Promise<AppSettings> => ipcRenderer.invoke(IPC.appSettings),
   setAppSettings: (patch: Partial<AppSettings>): Promise<AppSettings> =>

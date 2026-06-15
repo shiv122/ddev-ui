@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { firstLine } from '@/lib/format'
+import { useXdebugStatus } from '@/api/hooks'
 import { runOperation, useProjectBusy } from '@/store/operations'
 
 function InfoItem({ label, value }: { label: string; value: React.ReactNode }): React.JSX.Element {
@@ -21,6 +22,7 @@ export function OverviewTab({ info }: { info: DdevDescribe }): React.JSX.Element
   const busy = useProjectBusy(info.name)
   const running = info.status === 'running'
   const services = Object.entries(info.services ?? {})
+  const xdebug = useXdebugStatus(info.name, running)
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -68,8 +70,8 @@ export function OverviewTab({ info }: { info: DdevDescribe }): React.JSX.Element
             </div>
             <Switch
               id="xdebug-switch"
-              checked={info.xdebug_enabled}
-              disabled={!running || busy}
+              checked={xdebug.data ?? false}
+              disabled={!running || busy || xdebug.isLoading}
               onCheckedChange={(checked) => {
                 void runOperation({ kind: 'xdebug', project: info.name, enable: checked })
                 toast.info(`Turning Xdebug ${checked ? 'on' : 'off'}…`)
