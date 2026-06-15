@@ -21,7 +21,7 @@ import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { StatusDot } from '@/components/app/status'
 import { OperationDock } from '@/components/app/operation-dock'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
-import { useDoctor, useProjects, useVersion } from '@/api/hooks'
+import { useAppVersion, useDoctor, useProjects, useVersion } from '@/api/hooks'
 import { useRouter, type Route } from '@/lib/router'
 import { useTheme } from '@/lib/theme'
 import { cn } from '@/lib/utils'
@@ -79,6 +79,7 @@ export function Shell({ children }: { children: ReactNode }): React.JSX.Element 
   const projects = useProjects()
   const doctor = useDoctor()
   const version = useVersion()
+  const appVersion = useAppVersion()
   const running = useRunningOperations()
 
   const anyRunningProject = (projects.data ?? []).some((p) => p.status === 'running')
@@ -176,9 +177,16 @@ export function Shell({ children }: { children: ReactNode }): React.JSX.Element 
           )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <span className="text-[11px] text-muted-foreground">
-                {version.data?.['DDEV version'] ?? 'ddev'}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="cursor-default text-[11px] text-muted-foreground">
+                    {appVersion.data ? `v${appVersion.data}` : ''}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  DDEV engine: {version.data?.['DDEV version'] ?? 'unknown'}
+                </TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button

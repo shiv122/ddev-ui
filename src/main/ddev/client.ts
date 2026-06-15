@@ -64,6 +64,15 @@ class DdevClient {
     }
   }
 
+  /** Installed add-ons for every known project, keyed by project name. */
+  async addonsInstalledAll(): Promise<Record<string, DdevInstalledAddon[]>> {
+    const projects = await this.list()
+    const entries = await Promise.all(
+      projects.map(async (p) => [p.name, await this.addonsInstalled(p.name)] as const)
+    )
+    return Object.fromEntries(entries)
+  }
+
   async snapshots(project: string): Promise<DdevSnapshot[]> {
     const cwd = await this.approotFor(project)
     try {

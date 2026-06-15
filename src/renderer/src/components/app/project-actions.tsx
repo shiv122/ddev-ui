@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Code2,
   EyeOff,
@@ -5,6 +6,7 @@ import {
   Globe,
   Mail,
   MoreHorizontal,
+  Pencil,
   Play,
   RotateCw,
   Square,
@@ -20,9 +22,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
+import { useRouter } from '@/lib/router'
 import { runOperation, useProjectBusy } from '@/store/operations'
 
 export function ProjectActions({
@@ -33,10 +45,25 @@ export function ProjectActions({
   size?: 'sm' | 'default'
 }): React.JSX.Element {
   const busy = useProjectBusy(project.name)
+  const { navigate } = useRouter()
   const running = project.status === 'running'
   const broken =
     project.status === '.ddev/config.yaml missing' || project.status === 'project directory missing'
   const startable = !running && !broken && project.status !== 'starting'
+
+  const [renameOpen, setRenameOpen] = useState(false)
+  const [newName, setNewName] = useState('')
+  const cleanName = newName.trim().toLowerCase()
+  const nameOk = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(cleanName) && cleanName !== project.name
+
+  const submitRename = (): void => {
+    if (!nameOk) return
+    void runOperation({ kind: 'rename', project: project.name, newName: cleanName })
+    setRenameOpen(false)
+    setNewName('')
+    // The old name no longer resolves; land somewhere stable.
+    navigate({ view: 'dashboard' })
+  }
 
   return (
     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -124,6 +151,11 @@ export function ProjectActions({
           >
             <Code2 className="size-4" /> Open in editor
           </DropdownMenuItem>
+          {!broken && (
+            <DropdownMenuItem onSelect={() => setRenameOpen(true)}>
+              <Pencil className="size-4" /> Rename…
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <ConfirmDialog
             title={`Unlist ${project.name}?`}
@@ -156,6 +188,40 @@ export function ProjectActions({
           />
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename {project.name}</DialogTitle>
+            <DialogDescription>
+              DDevUI snapshots the database, recreates the project under the new name, then restores
+              the data. The project restarts and its URL becomes{' '}
+              <code>{cleanName || 'new-name'}.ddev.site</code>.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            placeholder="new-project-name"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitRename()
+            }}
+          />
+          {newName.trim() && !nameOk && (
+            <p className="text-xs text-destructive">
+              {cleanName === project.name
+                ? 'Choose a name different from the current one.'
+                : 'Use lowercase letters, numbers and hyphens (not starting or ending with a hyphen).'}
+            </p>
+          )}
+          <DialogFooter>
+            <Button disabled={!nameOk} onClick={submitRename}>
+              Rename project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

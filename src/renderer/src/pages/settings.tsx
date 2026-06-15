@@ -6,6 +6,7 @@ import {
   FolderSearch,
   HelpCircle,
   PencilRuler,
+  Rocket,
   Save,
   Settings2,
   XCircle
@@ -26,7 +27,13 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useAppSettings, useBinaries, useEditorStatus, useGlobalConfig } from '@/api/hooks'
+import {
+  useAppSettings,
+  useBinaries,
+  useEditorStatus,
+  useGlobalConfig,
+  useLoginItem
+} from '@/api/hooks'
 import { invalidateAfterBinaryChange, queryClient, queryKeys } from '@/lib/query-client'
 import { runOperation, useOperations } from '@/store/operations'
 
@@ -182,9 +189,47 @@ export function SettingsPage(): React.JSX.Element {
         </Button>
       </div>
 
+      {window.ddev.platform !== 'linux' && <GeneralCard />}
       <EditorCard />
       <BinaryLocationsCard />
     </div>
+  )
+}
+
+/** App-level preferences that aren't DDEV settings (stored by the OS / userData). */
+function GeneralCard(): React.JSX.Element {
+  const loginItem = useLoginItem()
+
+  const toggle = (open: boolean): void => {
+    void window.ddev.setLoginItem(open).then((next) => {
+      queryClient.setQueryData(queryKeys.loginItem, next)
+    })
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Rocket className="size-4 text-foreground/80" /> General
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between rounded-lg border border-border/70 px-3 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="login-item" className="text-sm font-normal">
+              Launch DDevUI at login
+            </Label>
+            <Help text="Start DDevUI automatically when you sign in, so the menu-bar tray and live project status are always available." />
+          </div>
+          <Switch
+            id="login-item"
+            checked={loginItem.data ?? false}
+            onCheckedChange={toggle}
+            disabled={loginItem.isLoading}
+          />
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

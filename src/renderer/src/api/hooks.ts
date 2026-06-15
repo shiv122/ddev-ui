@@ -9,6 +9,7 @@ import type {
   DdevProject,
   DdevSnapshot,
   DdevVersionInfo,
+  DockerProvider,
   DoctorReport,
   EditorStatus,
   GlobalConfig,
@@ -45,6 +46,15 @@ export function useVersion(): UseQueryResult<DdevVersionInfo> {
   })
 }
 
+/** DDevUI's own app version (static for the session). */
+export function useAppVersion(): UseQueryResult<string> {
+  return useQuery({
+    queryKey: queryKeys.appVersion,
+    queryFn: () => window.ddev.appVersion(),
+    staleTime: Infinity
+  })
+}
+
 export function useDoctor(): UseQueryResult<DoctorReport> {
   return useQuery({
     queryKey: queryKeys.doctor,
@@ -66,6 +76,22 @@ export function useInstalledAddons(project: string): UseQueryResult<DdevInstalle
   return useQuery({
     queryKey: queryKeys.addonsInstalled(project),
     queryFn: () => window.ddev.addonsInstalled(project)
+  })
+}
+
+/**
+ * Installed add-ons across every project, keyed by name. Powers the registry
+ * install matrix (which projects already have a given add-on). Only fetched
+ * when a detail view opens, since it spawns one `ddev add-on list` per project.
+ */
+export function useAllInstalledAddons(
+  enabled: boolean
+): UseQueryResult<Record<string, DdevInstalledAddon[]>> {
+  return useQuery({
+    queryKey: queryKeys.addonsInstalledAll,
+    queryFn: () => window.ddev.addonsInstalledAll(),
+    enabled,
+    staleTime: 10_000
   })
 }
 
@@ -168,6 +194,34 @@ export function useProjectsGraph(): UseQueryResult<ProjectGraph> {
     queryKey: queryKeys.projectsGraph,
     queryFn: () => window.ddev.projectsGraph(),
     refetchInterval: 8_000
+  })
+}
+
+/** Container runtimes installed on this machine that DDevUI can launch. */
+export function useDockerProviders(): UseQueryResult<DockerProvider[]> {
+  return useQuery({
+    queryKey: queryKeys.dockerProviders,
+    queryFn: () => window.ddev.dockerProviders(),
+    staleTime: 60_000
+  })
+}
+
+/** Whether DDevUI is set to launch at login (macOS/Windows). */
+export function useLoginItem(): UseQueryResult<boolean> {
+  return useQuery({
+    queryKey: queryKeys.loginItem,
+    queryFn: () => window.ddev.loginItem(),
+    staleTime: Infinity
+  })
+}
+
+/** Latest released DDEV CLI version tag (e.g. "v1.24.3"); refreshed sparingly. */
+export function useDdevLatest(): UseQueryResult<string | null> {
+  return useQuery({
+    queryKey: queryKeys.ddevLatest,
+    queryFn: () => window.ddev.latestDdevVersion(),
+    staleTime: 6 * 60 * 60_000,
+    retry: false
   })
 }
 

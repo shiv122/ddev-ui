@@ -1,6 +1,6 @@
 {
   "name": "ddevui",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "A desktop UI for managing DDEV local development projects",
   "main": "./out/main/index.js",
   "author": "Shivesh Tripathi",

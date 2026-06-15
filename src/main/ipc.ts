@@ -9,6 +9,9 @@ import { resourceStats } from './ddev/stats'
 import { readResourceLimits } from './ddev/resources'
 import { serviceConfig, xdebugStatus } from './ddev/services'
 import { projectsGraph } from './ddev/links'
+import { openDbClient } from './db-client'
+import { detectDockerProviders, startDockerProvider } from './providers'
+import { latestDdevVersion } from './updates'
 import { terminalManager } from './ddev/terminals'
 import { operationManager } from './ddev/operations'
 import { getAppSettings, setAppSettings } from './settings'
@@ -23,6 +26,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC.doctor, () => runDoctor())
   ipcMain.handle(IPC.addonRegistry, () => ddevClient.addonRegistry())
   ipcMain.handle(IPC.addonsInstalled, (_e, project: string) => ddevClient.addonsInstalled(project))
+  ipcMain.handle(IPC.addonsInstalledAll, () => ddevClient.addonsInstalledAll())
   ipcMain.handle(IPC.snapshots, (_e, project: string) => ddevClient.snapshots(project))
   ipcMain.handle(IPC.readConfigFile, (_e, project: string) => ddevClient.readConfigFile(project))
   ipcMain.handle(IPC.extras, (_e, project: string) => projectExtras(project))
@@ -41,12 +45,14 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IPC.xdebugStatus, (_e, project: string) => xdebugStatus(project))
   ipcMain.handle(IPC.projectsGraph, () => projectsGraph())
+  ipcMain.handle(IPC.latestDdevVersion, () => latestDdevVersion())
 
   // ----- app preferences -----
   ipcMain.handle(IPC.appSettings, () => getAppSettings())
   ipcMain.handle(IPC.setAppSettings, (_e, patch: Partial<AppSettings>) => setAppSettings(patch))
   ipcMain.handle(IPC.editorStatus, () => editorStatus())
   ipcMain.handle(IPC.testEditor, () => launchEditor(app.getPath('home')))
+  ipcMain.handle(IPC.appVersion, () => app.getVersion())
 
   // ----- operations -----
   ipcMain.handle(IPC.opRun, (_e, request: OperationRequest) => operationManager.run(request))
@@ -82,6 +88,15 @@ export function registerIpcHandlers(): void {
   ipcMain.on(IPC.termDispose, (_e, id: string) => terminalManager.dispose(id))
 
   // ----- app utilities -----
+  ipcMain.handle(IPC.openDbClient, (_e, uri: string, target?: string) => openDbClient(uri, target))
+  ipcMain.handle(IPC.loginItem, () => app.getLoginItemSettings().openAtLogin)
+  ipcMain.handle(IPC.setLoginItem, (_e, open: boolean) => {
+    app.setLoginItemSettings({ openAtLogin: open })
+    return app.getLoginItemSettings().openAtLogin
+  })
+  ipcMain.handle(IPC.dockerProviders, () => detectDockerProviders())
+  ipcMain.handle(IPC.startDockerProvider, (_e, id: string) => startDockerProvider(id))
+
   ipcMain.handle(IPC.openExternal, (_e, url: string) => {
     if (!/^https?:\/\//i.test(url)) throw new Error(`Refusing to open non-http URL: ${url}`)
     return shell.openExternal(url)

@@ -305,6 +305,12 @@ export interface DoctorReport {
   versionInfo: DdevVersionInfo | null
 }
 
+/** A container runtime DDevUI can detect on disk and offer to launch. */
+export interface DockerProvider {
+  id: 'docker-desktop' | 'orbstack' | 'rancher' | 'colima'
+  name: string
+}
+
 /* ------------------------------------------------------------------ */
 /* Long-running operations                                             */
 /* ------------------------------------------------------------------ */
@@ -320,6 +326,8 @@ export type OperationRequest =
   | { kind: 'delete'; project: string; omitSnapshot: boolean }
   | { kind: 'unlist'; project: string }
   | { kind: 'poweroff' }
+  | { kind: 'stop-all' }
+  | { kind: 'rename'; project: string; newName: string }
   | { kind: 'xdebug'; project: string; enable: boolean }
   | { kind: 'snapshot-create'; project: string; name?: string }
   | { kind: 'snapshot-restore'; project: string; snapshot: string }

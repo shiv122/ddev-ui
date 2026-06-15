@@ -17,6 +17,7 @@ export const queryKeys = {
   doctor: ['doctor'] as const,
   addonRegistry: ['addon-registry'] as const,
   addonsInstalled: (name: string) => ['addons-installed', name] as const,
+  addonsInstalledAll: ['addons-installed-all'] as const,
   snapshots: (name: string) => ['snapshots', name] as const,
   configFile: (name: string) => ['config-file', name] as const,
   extras: (name: string) => ['extras', name] as const,
@@ -28,7 +29,11 @@ export const queryKeys = {
   xdebugStatus: (name: string) => ['xdebug-status', name] as const,
   projectsGraph: ['projects-graph'] as const,
   appSettings: ['app-settings'] as const,
-  editorStatus: ['editor-status'] as const
+  editorStatus: ['editor-status'] as const,
+  appVersion: ['app-version'] as const,
+  dockerProviders: ['docker-providers'] as const,
+  loginItem: ['login-item'] as const,
+  ddevLatest: ['ddev-latest'] as const
 }
 
 /** Refresh everything affected by a binary path change (ddev/docker located). */
@@ -44,6 +49,7 @@ export function invalidateAfterOperation(project?: string): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.projects })
   void queryClient.invalidateQueries({ queryKey: queryKeys.resourceStats })
   void queryClient.invalidateQueries({ queryKey: queryKeys.projectsGraph })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.addonsInstalledAll })
   if (project) {
     void queryClient.invalidateQueries({ queryKey: queryKeys.describe(project) })
     void queryClient.invalidateQueries({ queryKey: queryKeys.addonsInstalled(project) })

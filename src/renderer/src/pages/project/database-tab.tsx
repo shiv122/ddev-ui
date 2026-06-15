@@ -1,8 +1,14 @@
 import { useState } from 'react'
-import { Camera, Copy, Download, History, Trash2, Upload } from 'lucide-react'
+import { Camera, ChevronDown, Copy, Database, Download, History, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 import type { DdevDescribe } from '@shared/types'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,6 +28,22 @@ function copy(value: string, label: string): void {
   void navigator.clipboard.writeText(value)
   toast.success(`${label} copied`)
 }
+
+/** Host-reachable connection URI (mysql:// or postgres://) for external DB clients. */
+function dbConnectionUri(info: DdevDescribe): string | null {
+  const db = info.dbinfo
+  if (!db || db.published_port <= 0) return null
+  const type = (info.database_type || db.database_type || '').toLowerCase()
+  const scheme = type.includes('postgres') ? 'postgresql' : 'mysql'
+  const cred = `${encodeURIComponent(db.username)}:${encodeURIComponent(db.password)}`
+  return `${scheme}://${cred}@127.0.0.1:${db.published_port}/${db.dbname}`
+}
+
+const DB_APPS: Array<{ target: string; label: string }> = [
+  { target: 'tableplus', label: 'TablePlus' },
+  { target: 'sequelace', label: 'Sequel Ace' },
+  { target: 'dbeaver', label: 'DBeaver' }
+]
 
 function CredRow({ label, value }: { label: string; value: string }): React.JSX.Element {
   return (
@@ -44,6 +66,17 @@ export function DatabaseTab({ info }: { info: DdevDescribe }): React.JSX.Element
   const [snapshotName, setSnapshotName] = useState('')
   const [snapshotDialogOpen, setSnapshotDialogOpen] = useState(false)
   const db = info.dbinfo
+  const dbUri = running ? dbConnectionUri(info) : null
+  const isMac = window.ddev.platform === 'darwin'
+
+  const openInClient = (target?: string): void => {
+    if (!dbUri) return
+    window.ddev.openDbClient(dbUri, target).catch((err: Error) =>
+      toast.error('Could not open database client', {
+        description: err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+      })
+    )
+  }
 
   const importDb = async (): Promise<void> => {
     const file = await window.ddev.selectFile({
@@ -84,7 +117,7 @@ export function DatabaseTab({ info }: { info: DdevDescribe }): React.JSX.Element
           ) : (
             <p className="text-sm text-muted-foreground">Start the project to see connection info.</p>
           )}
-          <div className="flex gap-2 pt-3">
+          <div className="flex flex-wrap gap-2 pt-3">
             <Button
               variant="secondary"
               size="sm"
@@ -103,6 +136,33 @@ export function DatabaseTab({ info }: { info: DdevDescribe }): React.JSX.Element
             >
               <Download className="size-3.5" /> Export dump…
             </Button>
+            {isMac ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="secondary" size="sm" className="gap-1.5" disabled={!dbUri}>
+                    <Database className="size-3.5" /> Open in… <ChevronDown className="size-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {DB_APPS.map((a) => (
+                    <DropdownMenuItem key={a.target} onClick={() => openInClient(a.target)}>
+                      {a.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuItem onClick={() => openInClient()}>Default app</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-1.5"
+                disabled={!dbUri}
+                onClick={() => openInClient()}
+              >
+                <Database className="size-3.5" /> Open in DB client
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -10,6 +10,7 @@ import type {
   DdevProject,
   DdevSnapshot,
   DdevVersionInfo,
+  DockerProvider,
   DoctorReport,
   ExtraKind,
   FileDialogOptions,
@@ -33,6 +34,8 @@ const api = {
   addonRegistry: (): Promise<DdevAddon[]> => ipcRenderer.invoke(IPC.addonRegistry),
   addonsInstalled: (project: string): Promise<DdevInstalledAddon[]> =>
     ipcRenderer.invoke(IPC.addonsInstalled, project),
+  addonsInstalledAll: (): Promise<Record<string, DdevInstalledAddon[]>> =>
+    ipcRenderer.invoke(IPC.addonsInstalledAll),
   snapshots: (project: string): Promise<DdevSnapshot[]> => ipcRenderer.invoke(IPC.snapshots, project),
   readConfigFile: (project: string): Promise<string> => ipcRenderer.invoke(IPC.readConfigFile, project),
   extras: (project: string): Promise<ProjectExtras> => ipcRenderer.invoke(IPC.extras, project),
@@ -54,8 +57,18 @@ const api = {
     ipcRenderer.invoke(IPC.setAppSettings, patch),
   editorStatus: (): Promise<EditorStatus> => ipcRenderer.invoke(IPC.editorStatus),
   testEditor: (): Promise<void> => ipcRenderer.invoke(IPC.testEditor),
+  appVersion: (): Promise<string> => ipcRenderer.invoke(IPC.appVersion),
   /** Host platform, for OS-specific UI hints. */
   platform: process.platform as NodeJS.Platform,
+
+  openDbClient: (uri: string, target?: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.openDbClient, uri, target),
+  loginItem: (): Promise<boolean> => ipcRenderer.invoke(IPC.loginItem),
+  setLoginItem: (open: boolean): Promise<boolean> => ipcRenderer.invoke(IPC.setLoginItem, open),
+  dockerProviders: (): Promise<DockerProvider[]> => ipcRenderer.invoke(IPC.dockerProviders),
+  startDockerProvider: (id: string): Promise<void> =>
+    ipcRenderer.invoke(IPC.startDockerProvider, id),
+  latestDdevVersion: (): Promise<string | null> => ipcRenderer.invoke(IPC.latestDdevVersion),
 
   runOperation: (request: OperationRequest): Promise<OperationDescriptor> =>
     ipcRenderer.invoke(IPC.opRun, request),

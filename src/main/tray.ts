@@ -188,6 +188,11 @@ export function initTray({ iconPath, iconLightPath, showWindow }: TrayOptions): 
       ...projectItems,
       { type: 'separator' },
       {
+        label: 'Stop all projects',
+        enabled: running.length > 0,
+        click: (): void => run({ kind: 'stop-all' })
+      },
+      {
         label: 'Power off DDEV',
         enabled: running.length > 0,
         click: (): void => run({ kind: 'poweroff' })

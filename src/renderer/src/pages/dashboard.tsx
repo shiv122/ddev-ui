@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'motion/react'
-import { ArrowUpRight, Cpu, FolderGit2, MemoryStick, Plus, Search } from 'lucide-react'
+import { ArrowUpRight, Cpu, FolderGit2, MemoryStick, Plus, Search, Square } from 'lucide-react'
 import type { DdevProject, ProjectResourceUsage } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,6 +12,7 @@ import { ProjectActions } from '@/components/app/project-actions'
 import { ProjectTypeIcon } from '@/components/app/project-type-icon'
 import { MiniSparkline } from '@/components/app/mini-sparkline'
 import { useProjects, useResourceStats } from '@/api/hooks'
+import { runOperation } from '@/store/operations'
 import { useResourceHistory } from '@/store/resource-history'
 import { useRouter } from '@/lib/router'
 import { firstLine, formatBytes, hostName, projectTypeLabel } from '@/lib/format'
@@ -181,9 +182,20 @@ export function DashboardPage(): React.JSX.Element {
             Local development environments managed by DDEV
           </p>
         </div>
-        <Button className="sheen gap-2" onClick={() => navigate({ view: 'create' })}>
-          <Plus className="size-4" /> New project
-        </Button>
+        <div className="flex items-center gap-2">
+          {runningCount > 0 && (
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={() => void runOperation({ kind: 'stop-all' })}
+            >
+              <Square className="size-4" /> Stop all
+            </Button>
+          )}
+          <Button className="sheen gap-2" onClick={() => navigate({ view: 'create' })}>
+            <Plus className="size-4" /> New project
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">

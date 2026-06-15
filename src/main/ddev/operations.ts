@@ -91,6 +91,33 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         steps: [{ args: ['poweroff'], json: true }],
         lock: 'global'
       }
+    case 'stop-all':
+      return {
+        title: 'Stop all projects',
+        steps: [{ args: ['stop', '--all'], json: true }],
+        lock: 'global'
+      }
+    case 'rename': {
+      // DDEV keys the database volume by project name, so a bare rename would
+      // orphan the data. Mirror the ddev-rename-project addon: snapshot the DB,
+      // delete the old project (code + snapshots on disk survive), rename in
+      // config, start under the new name, then restore the snapshot. The runner
+      // halts on the first failed step, so a failed snapshot never reaches delete.
+      const cwd = await approot(req.project)
+      const snap = `ddevui-rename-${Date.now()}`
+      return {
+        title: `Rename ${req.project} → ${req.newName}`,
+        steps: [
+          { args: ['start', '-y'], cwd, json: true },
+          { args: ['snapshot', `--name=${snap}`], cwd, json: true },
+          { args: ['delete', '--omit-snapshot', '--yes', req.project], json: true },
+          { args: ['config', `--project-name=${req.newName}`], cwd, json: true },
+          { args: ['start', '-y'], cwd, json: true },
+          { args: ['snapshot', 'restore', snap], cwd, json: true }
+        ],
+        lock: req.project
+      }
+    }
     case 'xdebug':
       return {
         title: `Xdebug ${req.enable ? 'on' : 'off'} — ${req.project}`,

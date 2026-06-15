@@ -1,50 +1,42 @@
 import { useMemo, useState } from 'react'
-import { Blocks, Download, ExternalLink, Package, Search, Star } from 'lucide-react'
+import { Blocks, ExternalLink, Package, Search, Star } from 'lucide-react'
 import type { DdevAddon } from '@shared/types'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useAddonRegistry, useProjects } from '@/api/hooks'
-import { runOperation } from '@/store/operations'
+import { AddonDetailDialog } from '@/components/app/addon-detail-dialog'
+import { useAddonRegistry } from '@/api/hooks'
 
 type TypeFilter = 'all' | 'official' | 'contrib'
 
-function AddonRow({ addon, onInstall }: { addon: DdevAddon; onInstall: () => void }): React.JSX.Element {
+function AddonRow({ addon, onOpen }: { addon: DdevAddon; onOpen: () => void }): React.JSX.Element {
   return (
-    <Card className="sheen py-3.5 transition-transform duration-200 hover:-translate-y-px">
+    <Card
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen()
+        }
+      }}
+      className="sheen cursor-pointer py-3.5 transition-transform duration-200 hover:-translate-y-px"
+    >
       <CardContent className="flex items-center gap-4 px-4">
         <div className="metal-tile flex size-9 shrink-0 items-center justify-center rounded-lg">
           <Package className="size-4.5 text-foreground/80" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              className="flex items-center gap-1 truncate text-sm font-semibold underline-offset-2 hover:underline"
-              onClick={() => void window.ddev.openExternal(addon.github_url)}
-            >
-              {addon.title}
-              <ExternalLink className="size-3 shrink-0 text-muted-foreground" />
-            </button>
+            <span className="truncate text-sm font-semibold">{addon.title}</span>
             {addon.type === 'official' && (
-              <Badge variant="outline" className="rounded-full border-foreground/25 bg-foreground/[0.06] text-foreground/85">
+              <Badge
+                variant="outline"
+                className="rounded-full border-foreground/25 bg-foreground/[0.06] text-foreground/85"
+              >
                 official
               </Badge>
             )}
@@ -61,13 +53,18 @@ function AddonRow({ addon, onInstall }: { addon: DdevAddon; onInstall: () => voi
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-3">
+        {/* Stop propagation so the GitHub link doesn't also trigger the card's open handler. */}
+        <div className="flex shrink-0 items-center gap-3" onClick={(e) => e.stopPropagation()}>
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Star className="size-3.5" /> {addon.stars}
           </span>
-          <Button size="sm" variant="secondary" className="gap-1.5" onClick={onInstall}>
-            <Download className="size-3.5" /> Install
-          </Button>
+          <button
+            className="text-muted-foreground transition-colors hover:text-foreground"
+            title="View on GitHub"
+            onClick={() => void window.ddev.openExternal(addon.github_url)}
+          >
+            <ExternalLink className="size-4" />
+          </button>
         </div>
       </CardContent>
     </Card>
@@ -76,11 +73,9 @@ function AddonRow({ addon, onInstall }: { addon: DdevAddon; onInstall: () => voi
 
 export function AddonsPage(): React.JSX.Element {
   const registry = useAddonRegistry()
-  const projects = useProjects()
   const [query, setQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
-  const [installTarget, setInstallTarget] = useState<DdevAddon | null>(null)
-  const [targetProject, setTargetProject] = useState('')
+  const [detail, setDetail] = useState<DdevAddon | null>(null)
 
   const filtered = useMemo(() => {
     const all = registry.data ?? []
@@ -88,28 +83,10 @@ export function AddonsPage(): React.JSX.Element {
     return all
       .filter((a) => typeFilter === 'all' || a.type === typeFilter)
       .filter(
-        (a) =>
-          !q ||
-          a.title.toLowerCase().includes(q) ||
-          a.description.toLowerCase().includes(q)
+        (a) => !q || a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)
       )
       .sort((a, b) => (a.type !== b.type ? (a.type === 'official' ? -1 : 1) : b.stars - a.stars))
   }, [registry.data, query, typeFilter])
-
-  const startInstall = (addon: DdevAddon): void => {
-    setTargetProject(projects.data?.[0]?.name ?? '')
-    setInstallTarget(addon)
-  }
-
-  const confirmInstall = (): void => {
-    if (!installTarget || !targetProject) return
-    void runOperation({
-      kind: 'addon-install',
-      project: targetProject,
-      addon: installTarget.title
-    })
-    setInstallTarget(null)
-  }
 
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-5 p-6">
@@ -120,7 +97,7 @@ export function AddonsPage(): React.JSX.Element {
           </h1>
           <p className="text-sm text-muted-foreground">
             {registry.data
-              ? `${registry.data.length} add-ons available — services and tools you can add to any project`
+              ? `${registry.data.length} add-ons available — open one to see where it's installed and add it to your projects`
               : 'Loading registry…'}
           </p>
         </div>
@@ -160,7 +137,7 @@ export function AddonsPage(): React.JSX.Element {
       ) : (
         <div className="space-y-2.5">
           {filtered.slice(0, 80).map((addon) => (
-            <AddonRow key={addon.title} addon={addon} onInstall={() => startInstall(addon)} />
+            <AddonRow key={addon.title} addon={addon} onOpen={() => setDetail(addon)} />
           ))}
           {filtered.length > 80 && (
             <p className="py-2 text-center text-xs text-muted-foreground">
@@ -173,34 +150,7 @@ export function AddonsPage(): React.JSX.Element {
         </div>
       )}
 
-      <Dialog open={installTarget !== null} onOpenChange={(open) => !open && setInstallTarget(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Install {installTarget?.title}</DialogTitle>
-            <DialogDescription>
-              Runs <code>ddev add-on get {installTarget?.title}</code> in the selected project.
-              Restart the project afterwards to activate it.
-            </DialogDescription>
-          </DialogHeader>
-          <Select value={targetProject} onValueChange={setTargetProject}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Choose a project" />
-            </SelectTrigger>
-            <SelectContent>
-              {(projects.data ?? []).map((p) => (
-                <SelectItem key={p.name} value={p.name}>
-                  {p.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <DialogFooter>
-            <Button disabled={!targetProject} onClick={confirmInstall}>
-              Install add-on
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <AddonDetailDialog addon={detail} onClose={() => setDetail(null)} />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import {
   Activity,
+  ArrowUpCircle,
   BookOpen,
   CheckCircle2,
   ChevronDown,
@@ -21,19 +22,36 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { toast } from 'sonner'
-import type { DiagnoseTarget, DoctorCheck } from '@shared/types'
+import type { DiagnoseTarget, DockerProvider, DoctorCheck } from '@shared/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { OperationConsole } from '@/components/app/operation-console'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
-import { useDoctor, useVersion } from '@/api/hooks'
+import { useDdevLatest, useDockerProviders, useDoctor, useVersion } from '@/api/hooks'
 import { invalidateAfterBinaryChange } from '@/lib/query-client'
 import { cn } from '@/lib/utils'
 import { cancelOperation, runOperation, useOperations } from '@/store/operations'
 
 const TROUBLESHOOTING_URL = 'https://docs.ddev.com/en/stable/users/usage/troubleshooting/'
+const DDEV_INSTALL_URL = 'https://docs.ddev.com/en/stable/users/install/ddev-installation/'
+
+function parseVer(v?: string | null): [number, number, number] | null {
+  const m = v?.match(/(\d+)\.(\d+)\.(\d+)/)
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null
+}
+
+/** True only when both versions parse and `installed` is strictly older. */
+function isOutdated(installed?: string | null, latest?: string | null): boolean {
+  const a = parseVer(installed)
+  const b = parseVer(latest)
+  if (!a || !b) return false
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) return a[i] < b[i]
+  }
+  return false
+}
 
 const CHECK_ICONS: Record<DoctorCheck['id'], typeof Container> = {
   'ddev-binary': Terminal,
@@ -108,11 +126,15 @@ function docUrl(hash?: string): string {
 function CheckTile({
   check,
   busyTarget,
-  onDiagnose
+  providers,
+  onDiagnose,
+  onStartProvider
 }: {
   check: DoctorCheck
   busyTarget: DiagnoseTarget | null
+  providers: DockerProvider[]
   onDiagnose: (target: DiagnoseTarget) => void
+  onStartProvider: (id: string) => void
 }): React.JSX.Element {
   const Icon = CHECK_ICONS[check.id] ?? Stethoscope
   const locatable = !check.ok && LOCATABLE[check.id]
@@ -206,6 +228,21 @@ function CheckTile({
                 <BookOpen className="size-3" /> Troubleshooting
               </Button>
             </div>
+            {check.id === 'docker-daemon' && providers.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                {providers.map((p) => (
+                  <Button
+                    key={p.id}
+                    variant="secondary"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-[11px]"
+                    onClick={() => onStartProvider(p.id)}
+                  >
+                    <Play className="size-3" /> Start {p.name}
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -232,6 +269,8 @@ function renderHint(hint: string): React.ReactNode {
 export function DoctorPage(): React.JSX.Element {
   const doctor = useDoctor()
   const version = useVersion()
+  const providers = useDockerProviders()
+  const latest = useDdevLatest()
   const operations = useOperations()
   const [activeOpId, setActiveOpId] = useState<string | null>(null)
   const [showVersions, setShowVersions] = useState(false)
@@ -255,6 +294,22 @@ export function DoctorPage(): React.JSX.Element {
       setActiveOpId(descriptor.id)
       diagnosticsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
+  }
+
+  const installedVer = doctor.data?.versionInfo?.['DDEV version'] ?? version.data?.['DDEV version']
+  const ddevOutdated = isOutdated(installedVer, latest.data)
+
+  const startProvider = (id: string): void => {
+    window.ddev
+      .startDockerProvider(id)
+      .then(() =>
+        toast.success('Starting Docker provider', { description: 'Re-check in a few seconds.' })
+      )
+      .catch((err: Error) =>
+        toast.error('Could not start provider', {
+          description: err.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '')
+        })
+      )
   }
 
   return (
@@ -324,6 +379,26 @@ export function DoctorPage(): React.JSX.Element {
         </CardContent>
       </Card>
 
+      {ddevOutdated && (
+        <Card className="border-warning/40 bg-warning/[0.06] py-3">
+          <CardContent className="flex items-center gap-3 px-5">
+            <ArrowUpCircle className="size-5 shrink-0 text-warning" />
+            <div className="min-w-0 flex-1 text-sm">
+              <span className="font-medium">DDEV {latest.data} is available</span>
+              <span className="text-muted-foreground"> — you&apos;re on {installedVer}.</span>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="shrink-0 gap-1.5"
+              onClick={() => void window.ddev.openExternal(DDEV_INSTALL_URL)}
+            >
+              <BookOpen className="size-3.5" /> How to upgrade
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* check tiles */}
       {doctor.isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -338,7 +413,9 @@ export function DoctorPage(): React.JSX.Element {
               key={check.id}
               check={check}
               busyTarget={runningTarget}
+              providers={providers.data ?? []}
               onDiagnose={(t) => void runDiagnostic(t)}
+              onStartProvider={startProvider}
             />
           ))}
         </div>
