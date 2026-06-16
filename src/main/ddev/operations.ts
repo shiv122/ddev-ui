@@ -68,17 +68,18 @@ async function buildPlan(req: OperationRequest): Promise<OperationPlan> {
         steps: [{ args: ['restart', req.project], json: true }],
         lock: req.project
       }
-    case 'delete':
-      return {
-        title: `Delete ${req.project}`,
-        steps: [
-          {
-            args: ['delete', '--yes', ...(req.omitSnapshot ? ['--omit-snapshot'] : []), req.project],
-            json: true
-          }
-        ],
-        lock: req.project
-      }
+    case 'delete': {
+      // ddev's default snapshot needs the DB running. When the caller wants to
+      // keep the snapshot on a stopped project, start it first; the runner halts
+      // on a failed step, so a failed start never reaches the destructive delete.
+      const steps: OperationStep[] = []
+      if (req.startFirst) steps.push({ args: ['start', '-y', req.project], json: true })
+      steps.push({
+        args: ['delete', '--yes', ...(req.omitSnapshot ? ['--omit-snapshot'] : []), req.project],
+        json: true
+      })
+      return { title: `Delete ${req.project}`, steps, lock: req.project }
+    }
     case 'unlist':
       return {
         title: `Unlist ${req.project}`,

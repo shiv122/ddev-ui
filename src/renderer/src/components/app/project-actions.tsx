@@ -31,6 +31,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ConfirmDialog } from '@/components/app/confirm-dialog'
 import { LoaderCircle } from '@/components/animate-ui/icons/loader-circle'
@@ -53,6 +54,8 @@ export function ProjectActions({
 
   const [renameOpen, setRenameOpen] = useState(false)
   const [newName, setNewName] = useState('')
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [snapshotFirst, setSnapshotFirst] = useState(true)
   const cleanName = newName.trim().toLowerCase()
   const nameOk = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(cleanName) && cleanName !== project.name
 
@@ -168,24 +171,15 @@ export function ProjectActions({
               </DropdownMenuItem>
             }
           />
-          <ConfirmDialog
-            title={`Delete ${project.name}?`}
-            description={
-              broken
-                ? 'This removes the containers and DDEV registration of this broken project. Your code (if any) stays on disk. No snapshot is possible since the project cannot start.'
-                : "This removes the project's containers and DDEV registration. Your code stays on disk. A database snapshot will be taken first."
-            }
-            confirmLabel="Delete project"
-            destructive
-            onConfirm={() =>
-              void runOperation({ kind: 'delete', project: project.name, omitSnapshot: broken })
-            }
-            trigger={
-              <DropdownMenuItem variant="destructive" onSelect={(e) => e.preventDefault()}>
-                <Trash2 className="size-4" /> Delete…
-              </DropdownMenuItem>
-            }
-          />
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
+              setSnapshotFirst(!broken)
+              setDeleteOpen(true)
+            }}
+          >
+            <Trash2 className="size-4" /> Delete…
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -218,6 +212,54 @@ export function ProjectActions({
           <DialogFooter>
             <Button disabled={!nameOk} onClick={submitRename}>
               Rename project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {project.name}?</DialogTitle>
+            <DialogDescription>
+              {broken
+                ? "This project's files are missing, so its database can't be snapshotted. This removes its containers and DDEV registration; anything on disk is left untouched."
+                : "This removes the project's containers and DDEV registration. Your code stays on disk."}
+            </DialogDescription>
+          </DialogHeader>
+          {!broken && (
+            <label className="flex cursor-pointer items-start gap-2.5 rounded-md border border-border/70 px-3 py-2.5">
+              <Checkbox
+                checked={snapshotFirst}
+                onCheckedChange={(v) => setSnapshotFirst(v === true)}
+                className="mt-0.5"
+              />
+              <span className="text-sm">
+                Take a database snapshot first
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  {!snapshotFirst
+                    ? 'The database will be destroyed without a snapshot.'
+                    : running
+                      ? 'Recoverable later with a snapshot restore.'
+                      : 'The stopped project is started briefly so its database can be snapshotted.'}
+                </span>
+              </span>
+            </label>
+          )}
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                void runOperation({
+                  kind: 'delete',
+                  project: project.name,
+                  omitSnapshot: broken || !snapshotFirst,
+                  startFirst: !broken && snapshotFirst && !running
+                })
+                setDeleteOpen(false)
+              }}
+            >
+              Delete project
             </Button>
           </DialogFooter>
         </DialogContent>

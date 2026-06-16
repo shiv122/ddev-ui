@@ -323,7 +323,7 @@ export type OperationRequest =
   | { kind: 'start'; project: string }
   | { kind: 'stop'; project: string }
   | { kind: 'restart'; project: string }
-  | { kind: 'delete'; project: string; omitSnapshot: boolean }
+  | { kind: 'delete'; project: string; omitSnapshot: boolean; startFirst?: boolean }
   | { kind: 'unlist'; project: string }
   | { kind: 'poweroff' }
   | { kind: 'stop-all' }
