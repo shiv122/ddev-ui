@@ -37,8 +37,9 @@
 
 **DDevUI** is a desktop app for [DDEV](https://ddev.com): every project, its status, logs,
 database, add-ons and configuration in one place — no `ddev` subcommands or YAML editing required.
-Start and stop projects, open a real shell into any service, import/export databases, manage
-snapshots, install add-ons, and create new projects from a wizard — all from a single window.
+Start and stop projects, control individual services, monitor CPU and memory, wire projects
+together, open a real shell into any container, import/export databases, manage snapshots,
+install add-ons, and create new projects from a wizard — all from a single window.
 
 It talks to DDEV exclusively through `ddev <cmd> --json-output` — no parsing of human text, no
 hidden shell commands, just typed, allow-listed invocations spawned with arg arrays (never a
@@ -90,31 +91,72 @@ you point the app at a `ddev`/`docker` binary manually if it isn't on the defaul
 ## Features
 
 - **Dashboard** — every project with live status, filtering and animated stats; one-click
-  start / stop / restart / open-in-browser / Mailpit.
-- **Project detail** — environment overview (PHP, webserver, DB, Node, Mutagen, router),
-  per-service container health, all URLs, and an **Xdebug toggle**.
-- **Database tools** — connection credentials with copy buttons, dump **import/export** via
-  native file dialogs, and **snapshots** (create / restore / delete).
+  start / stop / restart / rename / delete / open-in-browser / Mailpit, plus a **Stop all** for
+  everything that's running.
+- **Project detail** — environment overview (PHP, webserver, DB, Node, Mutagen, router), all
+  URLs, and a live **Xdebug toggle** that reads the real runtime state, not just the config.
+- **Services** — a card per running service (db, redis, phpMyAdmin, …) with its image, status
+  and endpoints; start / stop / restart, open a shell, tail logs, set CPU & memory limits, and
+  view the rendered Docker Compose plus any override files.
+- **Connections** — a drag-and-drop map to let one project consume another's service (database,
+  cache, …). Pick a provider service and DDevUI injects the host/port env vars and restarts the
+  consumer; connected projects cluster into editable groups. Built on DDEV's shared network, so
+  reachability needs no extra config.
+- **Resource monitoring** — live per-project CPU and memory charts, plus per-service CPU/memory
+  limits you can set from the UI.
+- **Database tools** — connection credentials with copy buttons, **open the database in an
+  external client** (TablePlus, Sequel Ace, DBeaver), dump **import/export** via native file
+  dialogs, and **snapshots** (create / restore / delete).
 - **Interactive terminal** — a real shell into any service via `ddev ssh`, powered by xterm.js
   and a PTY — not a one-shot command box.
 - **Logs** — stream `ddev logs` per service with follow mode.
 - **Config** — UI-driven settings (PHP version, database, webserver, performance mode, URLs,
   PHP extensions, hostnames) that run `ddev config`, plus a config viewer.
-- **Create-project wizard** — pick a folder and type, including custom templates beyond Laravel
-  (Next.js, Vite, Express, FastAPI, Django, Flask) on DDEV's `generic` type, with an optional
-  database.
-- **Add-on registry** — search the full registry (`ddev add-on list`), filter official/community,
-  sort by stars, install into any project, and remove installed add-ons.
+- **Create-project wizard** — pick a folder and project type; DDevUI suggests a framework-aware
+  bundle of add-ons (e.g. Laravel → Redis, queue, Buggregator) you can toggle, with an optional
+  database. It configures the DDEV project — it doesn't scaffold application code.
+- **Add-on registry** — browse the full registry (`ddev add-on list`), filter official/community,
+  sort by stars. Open an add-on to see exactly which projects already have it, then install it to
+  one or many at once — or remove it.
 - **Advanced** — custom Docker services & compose files, Dockerfile tweaks, custom commands, TLS
   certs, Traefik config and hooks, each with clear warnings.
 - **Sharing** — expose a project publicly via `ddev share` (ngrok / cloudflared), entirely
   optional and never blocking.
 - **Activity** — every ddev command the app runs, with live streamed output and cancel.
-- **Doctor** — checks the ddev binary, Docker CLI + daemon and mkcert; runs the deep
-  `ddev debug dockercheck`; shows the full `ddev version` table.
-- **Menu bar** — a tray with live project status and quick lifecycle controls.
+- **Doctor** — checks the ddev binary, Docker CLI + daemon and mkcert; **starts your container
+  runtime** (Docker Desktop, OrbStack, Colima, Rancher) when it's down and **flags when the DDEV
+  CLI is behind the latest release**; runs the deep `ddev debug dockercheck`; shows the full
+  `ddev version` table, and lets you point at a `ddev`/`docker` binary manually.
+- **Editor** — set your preferred editor and open a project's folder in it in one click.
+- **Menu bar** — a tray with live project status and quick lifecycle controls, with an optional
+  **launch at login** so it's always available.
 - **Light & dark themes** — monochrome, metallic design that follows a toggle; the dock and
   menu-bar icons follow along too.
+
+## How DDevUI compares to other DDEV UIs
+
+DDEV has a lively ecosystem of GUIs and IDE integrations — there is no single "official" desktop
+app today (the original [`ddev/ddev-ui`](https://github.com/ddev/ddev-ui) is no longer
+maintained). Here's an honest map of the main options and where DDevUI fits.
+
+| Tool | Type | Platforms | Price | Best for |
+| --- | --- | --- | --- | --- |
+| **DDevUI** (this) | Desktop app | macOS · Windows · Linux | Free, MIT | Multi-project workflows: per-service control, cross-project connections, resource monitoring, diagnostics |
+| [DDEV Manager](https://ddev-manager.github.io/) | Desktop app (Rust) | macOS · Windows · Linux | Free, MIT | A polished cross-platform alternative with app scaffolding installers and in-app auto-update |
+| [ddevBar](https://klemens.ee/ddevbar/) | Menu-bar app | macOS | Free | Lightweight one-click start/stop and quick links from the menu bar |
+| [DDEV-Apple-GUI](https://github.com/dave-agilepixel/DDEV-Apple-GUI) | Native app (SwiftUI) | macOS | Free, MIT | A native-Mac feel; logs, snapshots and global commands |
+| [PhpStorm DDEV Integration](https://docs.ddev.com/en/stable/users/install/phpstorm/) | IDE plugin | macOS · Windows · Linux (in PhpStorm) | Paid IDE | Zero-config Xdebug and interpreters inside PhpStorm |
+| [VS Code DDEV Manager](https://github.com/ddev/vscode-ddev-manager) | IDE extension | macOS · Windows · Linux (in VS Code) | Free | Driving the current project from VS Code's sidebar and command palette |
+
+**Where DDevUI is different.** It's a standalone, cross-platform desktop app — not macOS-only and
+not tied to an IDE — that leans into infrastructure visibility and multi-project work:
+
+- **Services tab** — inspect and control individual containers and read their rendered Compose,
+  rather than treating a project as one opaque unit.
+- **Connections** — wire one project to another's database/cache/etc. by injecting env vars over
+  DDEV's shared network. We're not aware of another GUI that does this.
+- **Resource monitoring + per-service limits** — live CPU/memory charts and limits from the UI.
+- **Doctor** — guided environment diagnostics when something's off.
 
 ## How it talks to DDEV
 
@@ -147,7 +189,8 @@ src/
     store/             useSyncExternalStore-based op store + toasts
     lib/               router (state-based), query client, theme, ddev options
     components/app/    shell, status badges, op console/dock, dialogs
-    pages/             dashboard, project, create, addons, operations, doctor, settings
+    pages/             dashboard, project (overview/services/db/config/…), create,
+                       addons, connections, operations, doctor, settings
 ```
 
 ## Development
