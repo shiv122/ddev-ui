@@ -46,4 +46,10 @@ linux:
     - deb
   category: Development
   maintainer: stripathi@zaraffasoft.com
+  # electron-builder defaults StartupWMClass to productName ("DDevUI"), but
+  # Electron sets the window's WM_CLASS from package.json `name` ("ddevui").
+  # On a mismatch, docks/panels (Cinnamon, GNOME) can't tie the running window
+  # to its launcher and fall back to a generic icon.
+  desktop:
+    StartupWMClass: ddevui
 npmRebuild: false
